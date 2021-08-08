@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CheerChen/konakore/internal/service/konachan"
+	log "github.com/kataras/golog"
+	myclient "konakore/pkg/client"
 )
 
 type KFile struct {
@@ -71,7 +72,7 @@ func LoadFiles(path string) (pics KFiles) {
 }
 
 func GetFileById(id int64) (pic KFile, err error) {
-	pics := LoadFiles(WallpaperPath)
+	pics := LoadFiles(wpath)
 
 	for _, p := range pics {
 		if p.Id == id {
@@ -118,18 +119,26 @@ func DownloadFile(file *KFile, u string) {
 	file.BuildName(u)
 	log.Infof("building name %s...", file.Name)
 	idxStr := fmt.Sprintf("%02d", file.Id/10000)
-	err := EnsureDir(path.Join(WallpaperPath, idxStr))
+	err := ensureDir(path.Join(wpath, idxStr))
 	if err != nil {
-		log.Errorf("EnsureDir err:", err)
+		log.Errorf("ensureDir err:", err)
 		return
 	}
-	dst := path.Join(WallpaperPath, idxStr, file.Name)
+	dst := path.Join(wpath, idxStr, file.Name)
 
 	log.Infof("downloading %v...", u)
 	log.Infof("save to ./%s", dst)
-	err = konachan.ParallelDownload(u, dst)
+	client := myclient.New()
+	err = client.Download(u, dst, myclient.DefaultProgress())
 	if err != nil {
-		log.Errorf("ParallelDownload err:", err)
+		log.Error(err)
+		if strings.Contains(u,".jpg") {
+			u = strings.Replace(u, ".jpg", ".gif", 1)
+			DownloadFile(file, u)
+		} else if strings.Contains(u,".png") {
+			u = strings.Replace(u, ".png", ".jpg", 1)
+			DownloadFile(file, u)
+		}
 	}
 	return
 }

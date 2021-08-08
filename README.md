@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/CheerChen/konakore)](https://goreportcard.com/report/github.com/CheerChen/konakore)
 
-Manage your Anime wallpaper collection with Kona-kore.
+Manage your Anime wallpaper collection with Konakore.
 
 ## Features
 
@@ -12,9 +12,9 @@ Manage your Anime wallpaper collection with Kona-kore.
 
 ## Quick Start
 
-We recommend deploying Kona-kore with Docker Compose.
+We recommend deploying Konakore with Docker Compose.
 
-See `Dockerfile` to find more details.
+See `docker-compose.yaml` to find more details.
 
 wallpaper files in path should contain valid *id* in filename, otherwise it would not be scaned.
 

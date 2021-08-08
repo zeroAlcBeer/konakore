@@ -1,0 +1,27 @@
+version: "2"
+services:
+  gallery:
+    build:
+      dockerfile: cmd/gallery/Dockerfile
+    image: cheerchen37/konakore
+    restart: always
+    volumes:
+      - /mnt/hd1/Wallpaper:/wallpaper
+    ports:
+      - 7079:80
+    environment:
+      wpath: "/wallpaper"
+      dsn: "root:please_change@tcp(192.168.0.110:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
+    container_name: kona-gallery
+  syncer:
+    build:
+      dockerfile: cmd/syncer/Dockerfile
+    image: cheerchen37/kona-syncer
+    restart: always
+    environment:
+      dsn: "root:please_change@tcp(192.168.0.110:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
+      spec_update_tag:    "0 0 * * *"
+      spec_newest_post:    "0 * * * *"
+      spec_oldest_post:    "*/5 * * * *"
+    container_name: kona-syncer
+

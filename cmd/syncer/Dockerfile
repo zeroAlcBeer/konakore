@@ -6,14 +6,12 @@ WORKDIR /konakore-src
 COPY . /konakore-src
 RUN export GOPROXY=https://goproxy.io,direct && \
     go mod download && \
-    make docker && \
-    mv ./bin/konakore /konakore && \
-    mv ./config/config.toml.sample /config.toml
+    make syncer && \
+    mv ./bin/syncer /syncer
 
 FROM alpine:latest
 LABEL org.opencontainers.image.source="https://github.com/CheerChen/konakore"
 
-COPY --from=builder /konakore /
-COPY --from=builder /config.toml /config/
+COPY --from=builder /syncer /
 
-ENTRYPOINT ["/konakore","-c","/config/config.toml"]
+ENTRYPOINT ["/syncer"]

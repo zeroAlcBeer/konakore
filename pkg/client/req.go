@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/imroc/req"
@@ -38,6 +39,9 @@ func (rc *ReqClient) Download(url, filename string, progress func(current, total
 	r, err := rc.Req.Get(url, req.DownloadProgress(progress))
 	if err != nil {
 		return err
+	}
+	if r.Response().StatusCode == http.StatusNotFound {
+		return errors.New("file not found")
 	}
 	return r.ToFile(filename)
 }

@@ -1,11 +1,6 @@
 GOBUILD=CGO_ENABLED=0 go build -trimpath -ldflags '-w -s'  -o
-BIN=bin/konakore
-SOURCE=cmd/gallery/main.go
 
-BIN2=bin/syncer
-SOURCE2=cmd/syncer/main.go
-
-docker:
-	$(GOBUILD) $(BIN) $(SOURCE)
+server:
+	$(GOBUILD) bin/server cmd/server/main.go
 syncer:
-	$(GOBUILD) $(BIN2) $(SOURCE2)
+	$(GOBUILD) bin/syncer cmd/syncer/main.go

@@ -1,21 +1,14 @@
 package main
 
 import (
-	"embed"
-	"net/http"
-
 	"github.com/NYTimes/gziphandler"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/kataras/golog"
 	"github.com/rs/cors"
+	"net/http"
 
 	"konakore/pkg/controllers"
 	"konakore/pkg/models"
-)
-
-var (
-	//go:embed assets/*
-	f embed.FS
 )
 
 func main() {
@@ -29,14 +22,12 @@ func main() {
 
 	// assets
 	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		bytes, err := f.ReadFile("assets/index.html")
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		w.Write(bytes)
+		http.ServeFile(w, r, "/assets/index.html")
 	})
-	router.ServeFiles("/web/*filepath", http.FS(f))
+
+	router.GET("/favicon.ico", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		http.ServeFile(w, r, "/assets/favicon.ico")
+	})
 
 	// post
 	router.GET("/posts", controllers.GetPosts)

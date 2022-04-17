@@ -2,11 +2,12 @@ package models
 
 import (
 	"fmt"
-	log "github.com/kataras/golog"
-	"gorm.io/gorm"
 	"math"
 	"net/url"
 	"strings"
+
+	log "github.com/kataras/golog"
+	"gorm.io/gorm"
 )
 
 type Post struct {
@@ -28,8 +29,8 @@ type Post struct {
 	Width          int    `gorm:"column:width" json:"width" form:"width"`
 	Height         int    `gorm:"column:height" json:"height" form:"height"`
 	ParentId       int64  `gorm:"column:parent_id" json:"parent_id" form:"parent_id"`
-	IsLike         bool   `gorm:"is_like" json:"is_like"`
 
+	IsLike      bool    `gorm:"-" json:"is_like"`
 	FileURL     string  `gorm:"-" json:"file_url"`
 	SampleURL   string  `gorm:"-" json:"sample_url"`
 	JpegURL     string  `gorm:"-" json:"jpeg_url"`
@@ -37,12 +38,6 @@ type Post struct {
 	TfIDf       float64 `gorm:"-" json:"tf_idf"`
 	MyScore     float64 `gorm:"-" json:"my_score"`
 	WaifuPillow bool    `gorm:"-" json:"waifu_pillow"`
-}
-
-type Tag struct {
-	ID    int64  `gorm:"column:id" json:"id" form:"id"`
-	Name  string `gorm:"column:name" json:"name" form:"name"`
-	Count int64  `gorm:"column:count" json:"count" form:"count"`
 }
 
 func (p *Post) Save() (err error) {
@@ -57,44 +52,12 @@ func (p *Post) First(id int64) (err error) {
 	return db.Where("id = ?", id).First(p).Error
 }
 
-func (p *Post) Unlike(id int64) (err error) {
-	return db.Model(p).Update("is_like", 0).Error
-}
-
-func (p *Post) Like(id int64) (err error) {
-	return db.Model(p).Update("is_like", 1).Error
-}
-
-func LikeAll(in []int64) (err error) {
-	return db.Model(&Post{}).Where("id in (?)", in).Update("is_like", 1).Error
-}
-
-func Favorites() *gorm.DB {
-	return db.Model(&[]Post{}).Where("is_like = ?", 1)
-}
-
-func GetPosts() *gorm.DB {
-	return db.Model(&[]Post{})
-}
-
-func GetTags() map[string]int64 {
-	tagCountMap := make(map[string]int64)
-	var tags []*Tag
-	err := db.Model(&[]Tag{}).Find(&tags).Error
-	if err != nil {
-		log.Error(err)
-		return tagCountMap
+func GetPostsStmt(query string) *gorm.DB {
+	stmt := db.Model(&[]Post{})
+	if query != "" {
+		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
 	}
-	for _, tag := range tags {
-		tagCountMap[tag.Name] = tag.Count
-	}
-	return tagCountMap
-}
-
-func (p *Post) GetLikePosts() []string {
-	var pts []string
-	_ = db.Model(p).Where("is_like = ?", 1).Pluck("tags", &pts).Error
-	return pts
+	return stmt
 }
 
 func Mark(p *Post, avgMap map[string]float64) {
@@ -149,12 +112,11 @@ func UpdateTfIdf() {
 	err := post.Last()
 	if err != nil {
 		log.Warnf("get lastid err: %s", err)
-
 	}
 	lastId = post.Id
 	log.Infof("post last id: %d", lastId)
 
-	pts := post.GetLikePosts()
+	pts := GetLikeTags()
 	tf1 := make(map[string]int)
 	tf2 := make(map[string]int)
 
@@ -180,13 +142,15 @@ func UpdateTfIdf() {
 	tfIdf = make(map[string]float64)
 	//idfMap := make(map[string]float64)
 
-	countMap := GetTags()
-	for tag, tf1 := range tf1 {
+	countMap := GetTagCount()
+	for tag, _ := range tf1 {
 		if _, ok := countMap[tag]; !ok {
 			countMap[tag] = 1
 		}
+		// 词频 = tag 在图片出现的次数 / 图片的 tag 总数
+		tf := float64(tf1[tag]) / float64(tf2[tag])
+		// 逆文档频率 = log( 图片总数 / 包含此 tag 的图片数 + 1）
 		idf := math.Log(float64(lastId) / (float64(countMap[tag] + 1)))
-		tf := float64(tf1) / float64(tf2[tag])
 		tfIdf[tag] = tf * idf
 		//idfMap[tag] = idf
 	}
@@ -194,23 +158,18 @@ func UpdateTfIdf() {
 }
 
 func BuildURL(p *Post) {
-	p.SampleURL, _ = urlEncoded(fmt.Sprintf("Konachan.com - %d sample.jpg", p.Id))
-	p.SampleURL = fmt.Sprintf("https://konachan.com/sample/%s/%s", p.Md5, p.SampleURL)
-	if p.IsLike {
-		p.SampleURL = fmt.Sprintf("/sample/%d", p.Id)
-	}
+	p.SampleURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/sample/%s/Konachan.com - %d sample.jpg", p.Md5, p.Id))
+	// if p.IsLike {
+	// 	p.SampleURL = fmt.Sprintf("/sample/%d", p.Id)
+	// }
 
-	p.JpegURL, _ = urlEncoded(fmt.Sprintf("Konachan.com - %d %s.jpg", p.Id, p.Tags))
-	p.JpegURL = fmt.Sprintf("https://konachan.com/jpeg/%s/%s", p.Md5, p.JpegURL)
+	p.JpegURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/jpeg/%s/Konachan.com - %d %s.jpg", p.Md5, p.Id, p.Tags))
+	p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.png", p.Md5))
 
 	if p.SampleFileSize == 0 && p.JpegFileSize == 0 {
-		p.FileURL, _ = urlEncoded(fmt.Sprintf("Konachan.com - %d %s.jpg", p.Id, p.Tags))
+		p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.jpg", p.Md5))
 		// can be gif
-	} else {
-		p.FileURL, _ = urlEncoded(fmt.Sprintf("Konachan.com - %d %s.png", p.Id, p.Tags))
-		// can be jpg
 	}
-	p.FileURL = fmt.Sprintf("https://konachan.com/image/%s/%s", p.Md5, p.FileURL)
 }
 
 func urlEncoded(str string) (string, error) {

@@ -13,7 +13,7 @@ import (
 
 // GetPosts ...
 func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	query :=  r.URL.Query().Get("query")
+	query := r.URL.Query().Get("query")
 	//?size=10&page=0&sort=-name
 	var posts []models.Post
 	page := paginate.New().With(models.GetPostsStmt(query)).Request(r).Response(&posts)
@@ -36,7 +36,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 // GetLikes ...
 func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	query :=  r.URL.Query().Get("query")
+	query := r.URL.Query().Get("query")
 	//?size=10&page=0&sort=-name
 	var posts []models.Post
 	page := paginate.New().With(models.GetLikesStmt(query)).Request(r).Response(&posts)

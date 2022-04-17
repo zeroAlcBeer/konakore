@@ -132,10 +132,10 @@ func DownloadFile(file *KFile, u string) {
 	err = client.Download(u, dst, myclient.DefaultProgress())
 	if err != nil {
 		log.Error(err)
-		if strings.Contains(u,".jpg") {
+		if strings.Contains(u, ".jpg") {
 			u = strings.Replace(u, ".jpg", ".gif", 1)
 			DownloadFile(file, u)
-		} else if strings.Contains(u,".png") {
+		} else if strings.Contains(u, ".png") {
 			u = strings.Replace(u, ".png", ".jpg", 1)
 			DownloadFile(file, u)
 		}

@@ -38,7 +38,7 @@ func Likes() []int64 {
 }
 
 func GetLikesStmt(query string) *gorm.DB {
-	stmt := db.Model(&[]Post{}).Where("id in (?)", Likes())
+	stmt := db.Model(&[]Post{}).Where("id in (select id from likes)")
 	if query != "" {
 		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
 	}
@@ -47,7 +47,8 @@ func GetLikesStmt(query string) *gorm.DB {
 
 func GetLikeTags() []string {
 	var pts []string
-	_ = db.Model(&[]Post{}).Where("id in (?)", Likes()).Pluck("tags", &pts).Error
+	_ = db.Model(&[]Post{}).Where("id in (select id from likes)").
+		Pluck("tags", &pts).Error
 	return pts
 }
 

@@ -159,9 +159,9 @@ func UpdateTfIdf() {
 
 func BuildURL(p *Post) {
 	p.SampleURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/sample/%s/Konachan.com - %d sample.jpg", p.Md5, p.Id))
-	if p.IsLike {
-		p.SampleURL = fmt.Sprintf("/sample/%d", p.Id)
-	}
+	// if p.IsLike {
+	// 	p.SampleURL = fmt.Sprintf("/sample/%d", p.Id)
+	// }
 
 	p.JpegURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/jpeg/%s/Konachan.com - %d %s.jpg", p.Md5, p.Id, p.Tags))
 	p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.png", p.Md5))

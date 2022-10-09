@@ -4,3 +4,5 @@ server:
 	$(GOBUILD) bin/server cmd/server/main.go
 syncer:
 	$(GOBUILD) bin/syncer cmd/syncer/main.go
+filter1:
+	$(GOBUILD) bin/filter cmd/filter/main.go

@@ -78,25 +78,26 @@ type Tag struct {
 	Count int64  `gorm:"column:count" json:"count" form:"count"`
 }
 
+var reqclient = myclient.New()
+
 func getPosts(page int) ([]*Post, error) {
 	var posts []*Post
-	client := myclient.New()
+
 	u := fmt.Sprintf("https://konachan.com/post.json?limit=%d&page=%d", 100, page)
 
 	log.Infof("req: %s", u)
-	err := client.GetJSON(u, &posts)
+	err := reqclient.GetJSON(u, &posts)
 
 	return posts, err
 }
 
 func getTags(limit int) ([]*Tag, error) {
 	var tags []*Tag
-	client := myclient.New()
 
 	u := fmt.Sprintf("https://konachan.com/tag.json?limit=%d&order=count", limit)
 
 	log.Infof("req: %s", u)
-	err := client.GetJSON(u, &tags)
+	err := reqclient.GetJSON(u, &tags)
 
 	return tags, err
 }

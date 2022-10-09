@@ -1,8 +1,8 @@
 package main
 
 import (
-	"konakore/pkg/models"
 	log "github.com/kataras/golog"
+	"konakore/pkg/models"
 	"os"
 )
 
@@ -29,5 +29,4 @@ func main() {
 		}
 	}
 	log.Infof("removed %v", count)
-//root:please_change@tcp(192.168.0.110:3307)/konakore?charset=utf8mb4&parseTime=True&loc=Local
 }

@@ -43,25 +43,3 @@ func Sync() {
 
 	return
 }
-
-func FindAllExplicit() {
-	pics := LoadFiles(wpath)
-	if len(pics) == 0 {
-		log.Warnf("Wallpaper path empty!")
-		return
-	}
-
-	var ids []int64
-	for _, pic := range pics {
-		ids = append(ids, pic.Id)
-	}
-
-	err := LikeAll(ids)
-	if err != nil {
-		log.Errorf("sync like post err: %s", err)
-	}
-
-	log.Infof("synced: %d", len(ids))
-
-	return
-}

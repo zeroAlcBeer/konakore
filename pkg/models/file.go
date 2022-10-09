@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/imroc/req/v3"
 	log "github.com/kataras/golog"
 	myclient "konakore/pkg/client"
 )
@@ -114,31 +115,56 @@ func (pic *KFile) BuildName(u string) {
 	pic.Name = fmt.Sprintf("Konachan.com - %d %s.%s", pic.Id, pic.Tags, pic.Ext)
 }
 
+var reqclient = myclient.New()
+
 // DownloadFile ...
 func DownloadFile(file *KFile, u string) {
 	file.BuildName(u)
-	log.Infof("building name %s...", file.Name)
+	log.Infof("built name %s...", file.Name)
+
+	// check
+	log.Infof("downloading %v...", u)
+	exist, err := reqclient.CheckDownloadUrl(u)
+	if err != nil {
+		log.Error(err)
+	}
+	if !exist {
+		if strings.Contains(u, ".jpg") {
+			u = strings.Replace(u, ".jpg", ".png", 1)
+		} else if strings.Contains(u, ".png") {
+			u = strings.Replace(u, ".png", ".gif", 1)
+		} else if strings.Contains(u, ".gif") {
+			log.Error("retry download limit")
+			return
+		}
+		DownloadFile(file, u)
+	}
+
+	// path
 	idxStr := fmt.Sprintf("%02d", file.Id/10000)
-	err := ensureDir(path.Join(wpath, idxStr))
+	err = ensureDir(path.Join(wpath, idxStr))
 	if err != nil {
 		log.Errorf("ensureDir err:", err)
 		return
 	}
 	dst := path.Join(wpath, idxStr, file.Name)
 
-	log.Infof("downloading %v...", u)
-	log.Infof("save to ./%s", dst)
-	client := myclient.New()
-	err = client.Download(u, dst, myclient.DefaultProgress())
+	// done in callback
+	callback := func(info req.DownloadInfo) {
+		fmt.Printf("downloaded %.2f%%\n", float64(info.DownloadedSize)/float64(info.Response.ContentLength)*100.0)
+
+		if info.Response.ContentLength != 0 && (info.DownloadedSize == info.Response.ContentLength) {
+			err = (&Post{}).Done(file.Id)
+		}
+
+	}
+
+	// real download
+	err = reqclient.Download(u, dst, callback)
 	if err != nil {
 		log.Error(err)
-		if strings.Contains(u, ".jpg") {
-			u = strings.Replace(u, ".jpg", ".gif", 1)
-			DownloadFile(file, u)
-		} else if strings.Contains(u, ".png") {
-			u = strings.Replace(u, ".png", ".jpg", 1)
-			DownloadFile(file, u)
-		}
 	}
+	log.Infof("save to ./%s", dst)
+
 	return
 }

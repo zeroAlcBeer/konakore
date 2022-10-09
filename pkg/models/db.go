@@ -24,4 +24,8 @@ func OpenDb() {
 	if debug != "" {
 		db = db.Debug()
 	}
+	//err = db.AutoMigrate(&Post{}, &Like{}, &Tag{})
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 }

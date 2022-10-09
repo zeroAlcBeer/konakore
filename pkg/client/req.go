@@ -1,47 +1,57 @@
 package client
 
 import (
-	"errors"
 	"net/http"
 
-	"github.com/imroc/req"
+	"github.com/imroc/req/v3"
 )
 
 // ReqClient ...
 type ReqClient struct {
-	*req.Req
+	*req.Client
 }
 
 // Get ...
-func (rc *ReqClient) Get(url string, v ...interface{}) (*http.Response, error) {
-	r, err := rc.Req.Get(url, v...)
-	return r.Response(), err
+func (rc *ReqClient) Get(url string) (*http.Response, error) {
+	r, err := rc.Client.R().Get(url)
+	return r.Response, err
 }
 
 // GetJSON ...
 func (rc *ReqClient) GetJSON(url string, v interface{}) error {
-	r, err := rc.Req.Get(url)
-	if err != nil {
-		return err
-	}
-
-	return r.ToJSON(v)
+	rc.Client.SetAutoDecodeContentType("json")
+	_, err := rc.Client.R().SetResult(v).Get(url)
+	return err
 }
 
 // Post ...
-func (rc *ReqClient) Post(url string, v ...interface{}) (*http.Response, error) {
-	r, err := rc.Req.Post(url, v...)
-	return r.Response(), err
+func (rc *ReqClient) Post(url string, v interface{}) (*http.Response, error) {
+	r, err := rc.Client.R().SetBody(v).Post(url)
+	return r.Response, err
 }
 
 // Download ...
-func (rc *ReqClient) Download(url, filename string, progress func(current, total int64)) error {
-	r, err := rc.Req.Get(url, req.DownloadProgress(progress))
+func (rc *ReqClient) Download(url, file string, callback req.DownloadCallback) error {
+	_, err := rc.Client.R().
+		SetOutputFile(file).
+		SetDownloadCallback(callback).
+		Get(url)
+	return err
+}
+
+func (rc *ReqClient) CheckDownloadUrl(url string) (bool, error) {
+	r, err := rc.Client.R().Head(url)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if r.Response().StatusCode == http.StatusNotFound {
-		return errors.New("file not found")
+	if r.Response.Header.Get("Content-Type") == "image/jpeg" {
+		return true, nil
 	}
-	return r.ToFile(filename)
+	return false, nil
+}
+
+// SetProxyUrl ...
+func (rc *ReqClient) SetProxyUrl(proxyUrl string) error {
+	rc.Client = rc.SetProxyURL(proxyUrl)
+	return nil
 }

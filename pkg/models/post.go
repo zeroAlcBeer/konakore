@@ -30,7 +30,7 @@ type Post struct {
 	Height         int    `gorm:"column:height" json:"height" form:"height"`
 	ParentId       int64  `gorm:"column:parent_id" json:"parent_id" form:"parent_id"`
 
-	IsLike      bool    `gorm:"-" json:"is_like"`
+	Likes       *Like   `gorm:"foreignKey:id" json:"likes"`
 	FileURL     string  `gorm:"-" json:"file_url"`
 	SampleURL   string  `gorm:"-" json:"sample_url"`
 	JpegURL     string  `gorm:"-" json:"jpeg_url"`
@@ -53,7 +53,7 @@ func (p *Post) First(id int64) (err error) {
 }
 
 func GetPostsStmt(query string) *gorm.DB {
-	stmt := db.Model(&[]Post{})
+	stmt := db.Model(&[]Post{}).Preload("Likes")
 	if query != "" {
 		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
 	}
@@ -164,7 +164,7 @@ func BuildURL(p *Post) {
 	// }
 
 	p.JpegURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/jpeg/%s/Konachan.com - %d %s.jpg", p.Md5, p.Id, p.Tags))
-	p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.png", p.Md5))
+	p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.jpg", p.Md5))
 
 	if p.SampleFileSize == 0 && p.JpegFileSize == 0 {
 		p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.jpg", p.Md5))

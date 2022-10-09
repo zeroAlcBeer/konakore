@@ -1,13 +1,13 @@
 package models
 
 import (
-	log "github.com/kataras/golog"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type Like struct {
-	Id int64 `gorm:"column:id" json:"id" form:"id"`
+	Id      int64 `gorm:"column:id" json:"id" form:"id"`
+	Pending bool  `gorm:"column:pending" json:"pending" form:"pending"`
 }
 
 func (p *Post) Unlike(id int64) (err error) {
@@ -15,7 +15,11 @@ func (p *Post) Unlike(id int64) (err error) {
 }
 
 func (p *Post) Like(id int64) (err error) {
-	return db.Create(&Like{Id: id}).Error
+	return db.Create(&Like{Id: id, Pending: true}).Error
+}
+
+func (p *Post) Done(id int64) (err error) {
+	return db.Save(&Like{Id: id, Pending: false}).Error
 }
 
 func LikeAll(in []int64) (err error) {
@@ -27,18 +31,8 @@ func LikeAll(in []int64) (err error) {
 	return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&likes).Error
 }
 
-func Likes() []int64 {
-	var likes []int64
-	err := db.Model(&Like{}).Pluck("id", &likes).Error
-	if err != nil {
-		log.Errorf("get favorites err, %s", err.Error())
-	}
-
-	return likes
-}
-
 func GetLikesStmt(query string) *gorm.DB {
-	stmt := db.Model(&[]Post{}).Where("id in (select id from likes)")
+	stmt := db.Model(&[]Post{}).Preload("Likes").Where("id in (select id from likes)")
 	if query != "" {
 		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
 	}
@@ -50,13 +44,4 @@ func GetLikeTags() []string {
 	_ = db.Model(&[]Post{}).Where("id in (select id from likes)").
 		Pluck("tags", &pts).Error
 	return pts
-}
-
-func IsLike(p *Post, likes []int64) {
-	for _, id := range likes {
-		if p.Id == id {
-			p.IsLike = true
-			break
-		}
-	}
 }

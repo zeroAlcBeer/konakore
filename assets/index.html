@@ -26,7 +26,7 @@
 
         .pswp__custom-caption {
             background: rgba(34, 34, 34, 0.75);
-            font-size: 16px;
+            font-size: 14px;
             color: #fff;
             width: calc(100% - 32px);
             max-width: 400px;
@@ -38,10 +38,10 @@
             transform: translateX(-50%);
         }
 
-        .pswp__custom-caption a {
-            color: #fff;
-            text-decoration: underline;
-        }
+        /*.pswp__custom-caption a {*/
+        /*    color: #fff;*/
+        /*    text-decoration: underline;*/
+        /*}*/
 
         .hidden-caption-content {
             display: none;
@@ -52,7 +52,6 @@
             vertical-align: middle;
             width: 95%;
         }
-
 
         .container {
             max-width: 1230px;
@@ -83,13 +82,14 @@
             :style="{ color : mode=='likes' ? '': '#333333'}" href="javascript:" title="To Likes"
             @click.prevent="mode='likes';pageWhat(0)">Likes</a></h1>
     <br/>
-    <small> <select v-model="pageSize">
-        <option value="100">100p</option>
-        <option value="200">200p</option>
-        <option value="300">300p</option>
-        <option value="400">400p</option>
-        <option value="500">500p</option>
-    </select>
+    <small>
+        <select v-model="pageSize">
+            <option value="100">100p</option>
+            <option value="200">200p</option>
+            <option value="300">300p</option>
+            <option value="400">400p</option>
+            <option value="500">500p</option>
+        </select>
         <select v-model="orderBy">
             <option value="my_score">tfidf+Score</option>
             <option value="tf_idf">tfidf</option>
@@ -97,9 +97,14 @@
             <option value="id">id</option>
             <option value="file_size">filesize</option>
             <option value="waifu_pillow">waifu_pillow</option>
-        </select> </small>
-    <span v-if="query!=''" class="tag badge badge-info">{{query}} <span data-role="remove"
-                                                                        @click="query=''"></span> </span>
+        </select>
+        <select v-model="sort">
+            <option value="-id">-id</option>
+            <option value="id">+id</option>
+        </select>
+    </small>
+    <span v-if="query!=''" class="tag badge badge-info">{{query}}
+        <span data-role="remove" @click="setQuery()"></span> </span>
     <small style="float: right">
         <a @click.prevent="pageWhat(page - 1)" href="javascript:">← Prev</a> <a
             @click.prevent="pageWhat(page + 1)" href="javascript:">Next →</a>
@@ -118,24 +123,21 @@
                @click.prevent="goTo(index)">
                 <img v-lazy="item.msrc" :alt="item.tags" :data-id="item.id"
                      :style="{ opacity : mode=='posts' &amp;&amp; item.is_like ? '0.1': ''}"/>
-
             </a>
             <div class="hidden-caption-content" :caption-id="item.id">
                 <p><a :href="'https://konachan.com/post/show/'+item.id" target="_blank"> {{item.id}} </a> -
-                    <a v-for="(tag, index) in item.tags.split(' ')" href="javascript:"
-                       :onclick="'setQuery(`' + tag + '`)'">
+                    <a v-for="(tag, index) in item.tags.split(' ')" :href="'?query=' + tag + ''">
                         <span class="badge badge-info">{{tag}}</span>
-                    </a></p>
+                    </a>
+                </p>
                 <p> tfidf+Score：{{item.my_score.toFixed(4)}} / tfidf：{{item.tf_idf.toFixed(4)}} / Disp:
-                    {{item.width}}x{{item.height}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}</p>
-                <p><a v-if="!item.is_like" href="javascript:" :onclick="'like(`' + item.id + '`)'"><i
-                        class="icon-heart-empty"></i> {{item.score}}</a>
-                    <a v-if="item.is_like" href="javascript:" :onclick="'unlike(`' + item.id + '`)'"><i
-                            class="icon-heart"></i> {{item.score}}</a>
-                    <a v-if="item.is_like" href="javascript:"
-                       :onclick="'like(`' + item.id + '`)'"><i
-                            class="icon-download"></i> re-Download</a>
-                    <i class="icon-time"></i> {{item.created_at}}</p>
+                    {{item.w}}x{{item.h}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}
+                </p>
+                <p>
+                    <i class="icon-heart"></i> {{item.score}}
+                    <i class="icon-time"></i> {{item.created_at}}
+                </p>
+
             </div>
 
         </waterfall-slot>
@@ -143,19 +145,16 @@
 </div>
 
 <!-- Import jQuery and PhotoSwipe Scripts -->
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.3/photoswipe.min.js"></script>-->
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.3/photoswipe-ui-default.min.js"></script>-->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.1.2/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue-waterfall@1.0.6/lib/vue-waterfall.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3"></script>
 <link href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3/dist/vue-loading.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/vue-lazyload@1.3.3/vue-lazyload.min.js"></script>
 
-<link rel="stylesheet" href="https://unpkg.com/photoswipe@5.2.0-beta.2/dist/photoswipe.css">
-<!--<link rel="stylesheet" href="https://unpkg.com/photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.css">-->
+<link rel="stylesheet" href="https://unpkg.com/photoswipe@5.3.2/dist/photoswipe.css">
 <script type="module">
-    import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe@5.2.0-beta.5/dist/photoswipe-lightbox.esm.js';
+    import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe@5.3.2/dist/photoswipe-lightbox.esm.js';
     // or 'photoswipe-dynamic-caption-plugin' if using package manager
     // import PhotoSwipeDynamicCaption
     //     from 'https://unpkg.com/photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.esm.js';
@@ -172,7 +171,7 @@
         }
     });
 
-    var app = new Vue(
+    let app = new Vue(
         {
             components: {
                 'waterfall': Waterfall.waterfall,
@@ -184,10 +183,13 @@
                 pageSize: 300,
                 page: 0,
                 query: "",
+                sort: "-id",
                 slides: [],
                 mode: "posts",
                 orderBy: "my_score",
-                cancelSource: null,
+                cancelCtrl: null,
+                urlParams: null,
+                exhentai: false,
             },
             watch: {
                 params: function () {
@@ -200,21 +202,48 @@
             },
             computed: {
                 params: function () {
-                    let params = `${this.mode}?size=${this.pageSize}&page=${this.page}&sort=-id`;
+                    let params = `${this.mode}?size=${this.pageSize}&page=${this.page}&sort=${this.sort}`; //&filters=["id","like","213"]
                     if (this.query.length !== 0) {
                         params += `&query=${this.query}`
                     }
                     return params
                 },
             },
+            created() {
+                this.urlParams = new URLSearchParams(window.location.search);
+                if (this.urlParams.has('query')) {
+                    this.query = encodeURIComponent(this.urlParams.get('query'))
+                }
+                if (this.urlParams.has('exhentai')) {
+                    this.exhentai = true
+                }
+                // console.log(this.urlParams.has('query')); // true
+                console.log(this.urlParams.get('query')); // "MyParam"
+            },
             methods: {
+                formatBytes: function (a, b) {
+                    if (0 === a) return "0 Bytes";
+                    let c = 1024, d = b || 2, e = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
+                        f = Math.floor(Math.log(a) / Math.log(c));
+                    return parseFloat((a / Math.pow(c, f)).toFixed(d)) + " " + e[f]
+                },
+                getTimestamp: function (UNIX_timestamp) {
+                    const pad = (n, s = 2) => (`${new Array(s).fill(0)}${n}`).slice(-s);
+                    const d = new Date(UNIX_timestamp * 1000);
+                    return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                },
                 pageWhat: function (p) {
                     if (p >= 0 && this.page !== p) {
                         this.page = p
                     }
                 },
                 goTo: function (index) {
+                    this.initLightBox();
                     this.lightbox.loadAndOpen(index);
+                },
+                setQuery: function () {
+                    window.history.pushState({}, document.title, window.location.pathname);
+                    this.query = ""
                 },
                 updateSlides: function () {
                     let loader = this.$loading.show({
@@ -223,12 +252,12 @@
                     });
 
                     this.slides = [];
-                    if (this.cancelSource != null) {
-                        this.cancelSource.cancel()
+                    if (this.cancelCtrl != null) {
+                        this.cancelCtrl.abort()
                     }
-                    this.cancelSource = axios.CancelToken.source()
+                    this.cancelCtrl = new AbortController();
                     axios.get(this.params, {
-                        cancelToken: this.cancelSource.token
+                        signal: this.cancelCtrl.signal
                     })
                         .then((response) => {
                             // console.log(response);
@@ -241,14 +270,15 @@
 
                                 let slideItem = {
                                     msrc: `https://konachan.com/data/preview/${fr}/${nr}/${item.md5}.jpg`,
-                                    src: item.is_like ? `/sample/${item.id}` : item.sample_url,
+                                    src: item.sample_url,
                                     w: item.width,
                                     width: item.sample_width,
                                     h: item.height,
                                     height: item.sample_height,
                                     title: "",
                                     tags: item.tags,
-                                    is_like: item.is_like,
+                                    is_like: !!item.likes,
+                                    is_pending: item.likes ? item.likes.pending : false,
                                     id: item.id,
                                     my_score: item.my_score,
                                     score: item.score,
@@ -257,19 +287,20 @@
                                     size: item.size,
                                     file_size: item.file_size,
                                     waifu_pillow: item.waifu_pillow,
-                                    created_at: getTimestamp(item.created_at),
-                                    fmt_size: formatBytes(item.file_size)
+                                    created_at: this.getTimestamp(item.created_at),
+                                    fmt_size: this.formatBytes(item.file_size)
                                 };
-                                if (slideItem.my_score > 0) {
-                                    this.slides.push(slideItem);
+                                if (slideItem.is_like && !slideItem.is_pending) {
+                                    slideItem.src = `/sample/${item.id}`
                                 }
+                                // if (this.exhentai) {
+                                this.slides.push(slideItem);
+                                // } else if (slideItem.rating === "s") {
+                                //     this.slides.push(slideItem);
+                                // }
                             });
                         })
                         .finally(() => {
-                            this.cancelSource = null;
-                            // this.slides.forEach((item, index) => {
-                            //     item.title = this.$refs.figcaption[index].innerHTML
-                            // });
                             let v = this.orderBy;
                             this.slides.sort((a, b) => (a[v] < b[v]) ? 1 : ((b[v] < a[v]) ? -1 : 0));
                             loader.hide()
@@ -277,97 +308,110 @@
                         .catch(function (error) {
                             console.log(error);
                         });
+                },
+                initLightBox: function () {
+                    this.lightbox = new PhotoSwipeLightbox({
+                        dataSource: this.slides,
+                        bgOpacity: 0.85,
+                        showHideAnimationType: 'zoom',
+                        pswpModule: () => import('https://unpkg.com/photoswipe@5.3.2/dist/photoswipe.esm.js'),
+                    });
+                    // this.lightbox.addFilter('numItems', (numItems) => {
+                    //     return this.slides.length;
+                    // });
+                    // this.lightbox.addFilter('itemData', (itemData, index) => {
+                    //     return this.slides[index];
+                    // });
+                    this.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
+                        console.log(data)
+                        return document.querySelector('[data-id="' + data.id + '"]');
+                    });
+
+                    this.lightbox.on('uiRegister', function () {
+                        app.lightbox.pswp.ui.registerElement({
+                            name: 'custom-caption',
+                            order: 9,
+                            isButton: false,
+                            appendTo: 'root',
+                            html: 'Caption text',
+                            onInit: (el, pswp) => {
+                                pswp.on('change', () => {
+                                    // console.log(pswp.currSlide)
+                                    let id = pswp.currSlide.data.id
+                                    let captionEl = document.querySelector('[caption-id="' + id + '"]')
+                                    el.innerHTML = captionEl.innerHTML;
+                                });
+                            },
+                        });
+                    });
+
+                    this.lightbox.on('uiRegister', function () {
+                        app.lightbox.pswp.ui.registerElement({
+                            name: 'download-button',
+                            order: 8,
+                            isButton: true,
+                            tagName: 'a',
+                            html: {
+                                isCustomSVG: true,
+                                inner: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5"/></svg>',
+                                outlineID: 'pswp__icn-download'
+                            },
+                            onClick: function (event, el, pswp) {
+                                let id = pswp.currSlide.data.id
+                                // console.log('change');
+                                // el.href = pswp.currSlide.data.src;
+                                app.lightbox.destroy();
+                                let loader = app.$loading.show({
+                                    container: null,
+                                    canCancel: false,
+                                });
+                                axios.get("/like/" + id).finally(() => {
+                                    loader.hide()
+                                    app.updateSlides()
+                                }).catch(function (error) {
+                                    console.log(error);
+                                });
+                            }
+                        });
+                    });
+
+                    this.lightbox.on('uiRegister', function () {
+                        app.lightbox.pswp.ui.registerElement({
+                            name: 'unlike-button',
+                            order: 7,
+                            isButton: true,
+                            tagName: 'a',
+                            html: {
+                                isCustomSVG: true,
+                                inner: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
+                                outlineID: 'pswp__icn-heart'
+                            },
+                            onClick: function (event, el, pswp) {
+                                let id = pswp.currSlide.data.id
+                                // console.log('change');
+                                // el.href = pswp.currSlide.data.src;
+                                app.lightbox.destroy();
+                                let loader = app.$loading.show({
+                                    container: null,
+                                    canCancel: false,
+                                });
+                                axios.get("/unlike/" + id).finally(() => {
+                                    loader.hide()
+                                    app.updateSlides()
+                                }).catch(function (error) {
+                                    console.log(error);
+                                });
+                            }
+                        });
+                    });
+                    this.lightbox.init();
                 }
             },
             mounted: function () {
-                this.updateSlides();
-                if (!this.lightbox) {
-                    this.lightbox = new PhotoSwipeLightbox({
-                        bgOpacity: 0.85,
-                        showHideAnimationType: 'zoom',
-                        pswpModule: () => import('https://unpkg.com/photoswipe@5.2.0-beta.5/dist/photoswipe.esm.js'),
-                    });
-                }
-
-                this.lightbox.addFilter('numItems', (numItems) => {
-                    return this.slides.length;
-                });
-                this.lightbox.addFilter('itemData', (itemData, index) => {
-                    return this.slides[index];
-                });
-                this.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
-                    return document.querySelector('[data-id="' + data.id + '"]');
-                });
-                this.lightbox.on('uiRegister', function () {
-                    app.lightbox.pswp.ui.registerElement({
-                        name: 'custom-caption',
-                        order: 9,
-                        isButton: false,
-                        appendTo: 'root',
-                        html: 'Caption text',
-                        onInit: (el, pswp) => {
-                            pswp.on('change', () => {
-                                console.log(pswp.currSlide)
-                                el.innerHTML = document.querySelector('[caption-id="' + pswp.currSlide.data.id + '"]').innerHTML;
-                            });
-                        },
-                    });
-
-                });
-
-                this.lightbox.init();
-            },
+                this.updateSlides()
+            }
         }
     );
-
-    function setQuery(tag) {
-        app.lightbox.close();
-        app.page = 0;
-        app.pageSize = 300;
-        app.query = encodeURIComponent(tag);
-    }
-
-    function like(id) {
-        app.lightbox.close();
-        let loader = app.$loading.show({
-            container: null,
-            canCancel: false,
-        });
-        axios.get("/like/" + id).finally(() => {
-            loader.hide()
-            app.updateSlides()
-        }).catch(function (error) {
-            console.log(error);
-        });
-    }
-
-    function unlike(id) {
-        app.lightbox.close();
-        let loader = app.$loading.show({
-            container: null,
-            canCancel: false,
-        });
-        axios.get("/unlike/" + id).finally(() => {
-            loader.hide()
-            app.updateSlides()
-        }).catch(function (error) {
-            console.log(error);
-        });
-    }
-
-    function formatBytes(a, b) {
-        if (0 === a) return "0 Bytes";
-        let c = 1024, d = b || 2, e = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
-            f = Math.floor(Math.log(a) / Math.log(c));
-        return parseFloat((a / Math.pow(c, f)).toFixed(d)) + " " + e[f]
-    }
-
-    function getTimestamp(UNIX_timestamp) {
-        const pad = (n, s = 2) => (`${new Array(s).fill(0)}${n}`).slice(-s);
-        const d = new Date(UNIX_timestamp * 1000);
-        return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
 </script>
 </body>
-
 </html>

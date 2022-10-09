@@ -4,8 +4,11 @@ RUN apk add --no-cache make git
 
 WORKDIR /konakore-src
 COPY . /konakore-src
-RUN export GOPROXY=https://goproxy.io,direct && \
-    make server && \
+
+ENV GO111MODULE=on \
+    GOPROXY=https://proxy.golang.com.cn,direct
+
+RUN make server && \
     mv ./bin/server /server
 
 FROM alpine:latest

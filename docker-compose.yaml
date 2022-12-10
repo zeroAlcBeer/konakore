@@ -7,7 +7,7 @@ services:
       - /mnt/hd1/Wallpaper:/wallpaper
       - /opt/konakore:/assets
     ports:
-      - 7079:80
+      - "7079:80"
     environment:
       wpath: "/wallpaper"
       dsn: "root:please_change@tcp(192.168.0.110:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"

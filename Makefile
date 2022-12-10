@@ -12,3 +12,8 @@ nsfw:
 	go env -w GOPROXY="https://goproxy.cn,direct" && go env -w GOSUMDB=sum.golang.google.cn
 	go mod tidy
 	$(GOBUILD) bin/nsfw cmd/nsfw/main.go
+nsfw-run:
+	make nsfw
+	export wpath="C:\Users\cheer\Pictures\Saved Pictures"
+	export dsn="root:please_change@tcp(192.168.0.110:3307)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
+	bin/nsfw

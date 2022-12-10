@@ -1,17 +1,17 @@
 <html>
-
 <head>
     <meta charset="utf-8"/>
-    <meta name="referrer" content="never"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1, user-scalable=no">
-    <title>Kona-kore</title>
+    <meta content="never" name="referrer"/>
+    <meta content="width=device-width, initial-scale=1,maximum-scale=1, user-scalable=no" name="viewport">
+    <title>
+        Kona-kore
+    </title>
     <!-- Import PhotoSwipe Styles -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css"
-          integrity="sha512-P5MgMn1jBN01asBgU0z60Qk4QxiXo86+wlFahKrsQf37c9cro517WzVSPPV1tDKzhku2iJ2FVgL67wG03SGnNA=="
-          crossorigin="anonymous"/>
-    <link href="https://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
-    <link rel="shortcut icon" href="/favicon.ico"/>
-    <link rel="bookmark" href="/favicon.ico"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.3.4/dist/photoswipe.css" rel="stylesheet">
+    <link href="/favicon.ico" rel="shortcut icon"/>
+    <link href="/favicon.ico" rel="bookmark"/>
     <!-- A touch of fanciness 💄 -->
     <link href="https://fonts.googleapis.com/css?family=Bitter:400,700,400italic" rel="stylesheet" type="text/css"/>
     <style>
@@ -73,88 +73,132 @@
         }
     </style>
 </head>
-
 <body>
 <!-- Vue app -->
 <div class="container" id="app">
-    <h1 class="text-center"><a :style="{ color : mode=='posts' ? '': '#333333'}" href="javascript:"
-                               title="To Posts" @click.prevent="mode='posts';pageWhat(0)">Posts</a> / <a
-            :style="{ color : mode=='likes' ? '': '#333333'}" href="javascript:" title="To Likes"
-            @click.prevent="mode='likes';pageWhat(0)">Likes</a></h1>
+    <h1 class="text-center">
+        <a :style="{ color : mode=='posts' ? '': '#333333'}" @click.prevent="mode='posts';pageWhat(0)"
+           href="javascript:" title="To Posts">
+            Posts
+        </a>
+        /
+        <a :style="{ color : mode=='likes' ? '': '#333333'}" @click.prevent="mode='likes';orderBy='id';pageWhat(0)"
+           href="javascript:" title="To Likes">
+            Likes
+        </a>
+    </h1>
     <br/>
     <small>
         <select v-model="pageSize">
-            <option value="100">100p</option>
-            <option value="200">200p</option>
-            <option value="300">300p</option>
-            <option value="400">400p</option>
-            <option value="500">500p</option>
+            <option value="100">
+                100p
+            </option>
+            <option value="200">
+                200p
+            </option>
+            <option value="300">
+                300p
+            </option>
+            <option value="400">
+                400p
+            </option>
+            <option value="500">
+                500p
+            </option>
         </select>
         <select v-model="orderBy">
-            <option value="my_score">tfidf+Score</option>
-            <option value="tf_idf">tfidf</option>
-            <option value="score">Score</option>
-            <option value="id">id</option>
-            <option value="file_size">filesize</option>
-            <option value="waifu_pillow">waifu_pillow</option>
+            <option value="my_score">
+                tfidf+Score
+            </option>
+            <option value="tf_idf">
+                tfidf
+            </option>
+            <option value="score">
+                Score
+            </option>
+            <option value="id">
+                id
+            </option>
+            <option value="file_size">
+                filesize
+            </option>
+            <option value="waifu_pillow">
+                waifu_pillow
+            </option>
+            <option value="shuffle">
+                shuffle
+            </option>
         </select>
         <select v-model="sort">
-            <option value="-id">-id</option>
-            <option value="id">+id</option>
+            <option value="-id">
+                -id
+            </option>
+            <option value="id">
+                +id
+            </option>
         </select>
     </small>
-    <span v-if="query!=''" class="tag badge badge-info">{{query}}
-        <span data-role="remove" @click="setQuery()"></span> </span>
+    <span class="tag badge badge-info" v-if="query!=''">
+                {{query}}
+                <span @click="setQuery()" data-role="remove">
+                </span>
+            </span>
     <small style="float: right">
-        <a @click.prevent="pageWhat(page - 1)" href="javascript:">← Prev</a> <a
-            @click.prevent="pageWhat(page + 1)" href="javascript:">Next →</a>
+        <a @click.prevent="pageWhat(page - 1)" href="javascript:">
+            ← Prev
+        </a>
+        <a @click.prevent="pageWhat(page + 1)" href="javascript:">
+            Next →
+        </a>
     </small>
     <!-- Galley wrapper that contains all items -->
     <waterfall :line-gap="300" :watch="slides">
-        <waterfall-slot
-                v-for="(item, index) in slides"
-                :width="item.width"
-                :height="item.height"
-                :order="index"
-                :key="item.id"
-                move-class="item-move"
-        >
-            <a :href="item.src" :data-caption="item.tags" :data-width="item.w" :data-height="item.h"
+        <waterfall-slot :height="item.height" :key="item.id" :order="index" :width="item.width" move-class="item-move"
+                        v-for="(item, index) in slides">
+            <a :data-caption="item.tags" :data-height="item.h" :data-width="item.w" :href="item.src"
                @click.prevent="goTo(index)">
-                <img v-lazy="item.msrc" :alt="item.tags" :data-id="item.id"
-                     :style="{ opacity : mode=='posts' &amp;&amp; item.is_like ? '0.1': ''}"/>
+                <img :alt="item.tags" :data-id="item.id" :style="{ opacity : mode=='posts' && item.is_like ? '0.1': ''}"
+                     v-lazy="item.msrc"/>
             </a>
-            <div class="hidden-caption-content" :caption-id="item.id">
-                <p><a :href="'https://konachan.com/post/show/'+item.id" target="_blank"> {{item.id}} </a> -
-                    <a v-for="(tag, index) in item.tags.split(' ')" :href="'?query=' + tag + ''">
-                        <span class="badge badge-info">{{tag}}</span>
+            <div :caption-id="item.id" class="hidden-caption-content">
+                <p>
+                    <a :href="'https://konachan.com/post/show/'+item.id" target="_blank">
+                        {{item.id}}
+                    </a>
+                    -
+                    <a :href="'?query=' + tag + ''" v-for="(tag, index) in item.tags.split(' ')">
+                                <span class="badge badge-info">
+                                    {{tag}}
+                                </span>
                     </a>
                 </p>
-                <p> tfidf+Score：{{item.my_score.toFixed(4)}} / tfidf：{{item.tf_idf.toFixed(4)}} / Disp:
+                <p>
+                    tfidf+Score：{{item.my_score.toFixed(4)}} / tfidf：{{item.tf_idf.toFixed(4)}} / Disp:
                     {{item.w}}x{{item.h}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}
                 </p>
                 <p>
-                    <i class="icon-heart"></i> {{item.score}}
-                    <i class="icon-time"></i> {{item.created_at}}
+                    <i class="icon-heart">
+                    </i>
+                    {{item.score}}
+                    <i class="icon-time">
+                    </i>
+                    {{item.created_at}}
                 </p>
-
             </div>
-
         </waterfall-slot>
     </waterfall>
 </div>
-
 <!-- Import jQuery and PhotoSwipe Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.1.2/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue-waterfall@1.0.6/lib/vue-waterfall.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3"></script>
-<link href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3/dist/vue-loading.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3.4.2/dist/vue-loading.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3.4.2/dist/vue-loading.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/vue-lazyload@1.3.3/vue-lazyload.min.js"></script>
-
-<link rel="stylesheet" href="https://unpkg.com/photoswipe@5.3.2/dist/photoswipe.css">
 <script type="module">
-    import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe@5.3.2/dist/photoswipe-lightbox.esm.js';
+    import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe@5.3.4/dist/photoswipe-lightbox.esm.min.js';
+    import PhotoSwipeFullscreen
+        from 'https://cdn.jsdelivr.net/gh/arnowelzel/photoswipe-fullscreen/photoswipe-fullscreen.esm.min.js';
     // or 'photoswipe-dynamic-caption-plugin' if using package manager
     // import PhotoSwipeDynamicCaption
     //     from 'https://unpkg.com/photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.esm.js';
@@ -196,8 +240,7 @@
                     this.updateSlides()
                 },
                 orderBy: function () {
-                    let v = this.orderBy;
-                    this.slides.sort((a, b) => (a[v] < b[v]) ? 1 : ((b[v] < a[v]) ? -1 : 0));
+                    this.sortOrderBy()
                 },
             },
             computed: {
@@ -221,6 +264,14 @@
                 console.log(this.urlParams.get('query')); // "MyParam"
             },
             methods: {
+                sortOrderBy: function () {
+                    let v = this.orderBy;
+                    if (v === "shuffle") {
+                        this.slides.sort((a, b) => (Math.random() - 0.5));
+                    } else {
+                        this.slides.sort((a, b) => (a[v] < b[v]) ? 1 : ((b[v] < a[v]) ? -1 : 0));
+                    }
+                },
                 formatBytes: function (a, b) {
                     if (0 === a) return "0 Bytes";
                     let c = 1024, d = b || 2, e = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
@@ -264,18 +315,19 @@
                             response.data.data.forEach((item) => {
                                 let fr = item.md5.substring(0, 2);
                                 let nr = item.md5.substring(2, 4);
-                                if (item.sample_file_size === 0 && !item.is_like) {
-                                    item.sample_url = item.file_url
-                                }
 
                                 let slideItem = {
                                     msrc: `https://konachan.com/data/preview/${fr}/${nr}/${item.md5}.jpg`,
-                                    src: item.sample_url,
+                                    src: item.sample_file_size
+                                        ? item.sample_url
+                                        : item.jpeg_file_size
+                                            ? item.jpeg_url
+                                            : item.file_url,
                                     w: item.width,
                                     width: item.sample_width,
                                     h: item.height,
                                     height: item.sample_height,
-                                    title: "",
+                                    title: '',
                                     tags: item.tags,
                                     is_like: !!item.likes,
                                     is_pending: item.likes ? item.likes.pending : false,
@@ -288,21 +340,15 @@
                                     file_size: item.file_size,
                                     waifu_pillow: item.waifu_pillow,
                                     created_at: this.getTimestamp(item.created_at),
-                                    fmt_size: this.formatBytes(item.file_size)
+                                    fmt_size: this.formatBytes(item.file_size),
                                 };
-                                if (slideItem.is_like && !slideItem.is_pending) {
-                                    slideItem.src = `/sample/${item.id}`
-                                }
-                                // if (this.exhentai) {
+
                                 this.slides.push(slideItem);
-                                // } else if (slideItem.rating === "s") {
-                                //     this.slides.push(slideItem);
-                                // }
+
                             });
                         })
                         .finally(() => {
-                            let v = this.orderBy;
-                            this.slides.sort((a, b) => (a[v] < b[v]) ? 1 : ((b[v] < a[v]) ? -1 : 0));
+                            this.sortOrderBy()
                             loader.hide()
                         })
                         .catch(function (error) {
@@ -316,14 +362,10 @@
                         showHideAnimationType: 'zoom',
                         pswpModule: () => import('https://unpkg.com/photoswipe@5.3.2/dist/photoswipe.esm.js'),
                     });
-                    // this.lightbox.addFilter('numItems', (numItems) => {
-                    //     return this.slides.length;
-                    // });
-                    // this.lightbox.addFilter('itemData', (itemData, index) => {
-                    //     return this.slides[index];
-                    // });
+
+                    const fullscreenPlugin = new PhotoSwipeFullscreen(this.lightbox);
+
                     this.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
-                        console.log(data)
                         return document.querySelector('[data-id="' + data.id + '"]');
                     });
 

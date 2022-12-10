@@ -1,12 +1,10 @@
 FROM golang:alpine as builder
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache make git
 
 WORKDIR /konakore-src
 COPY . /konakore-src
-
-ENV GO111MODULE=on \
-    GOPROXY=https://proxy.golang.com.cn,direct
 
 RUN make server && \
     mv ./bin/server /server

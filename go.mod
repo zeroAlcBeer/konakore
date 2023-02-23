@@ -12,7 +12,7 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/valyala/fasthttp v1.34.0 // indirect
 	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.8
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.4
 )

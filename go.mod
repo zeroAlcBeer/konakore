@@ -11,8 +11,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.8.2
 	github.com/valyala/fasthttp v1.34.0 // indirect
-	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b
-	golang.org/x/text v0.3.7
+	golang.org/x/net v0.7.0
+	golang.org/x/text v0.7.0
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.4
 )

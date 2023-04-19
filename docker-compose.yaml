@@ -1,24 +1,30 @@
-version: "2"
+version: "3.7"
+
 services:
+  db:
+    image: yobasystems/alpine-mariadb
+    container_name: konakore-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=please_change
+      - MYSQL_DATABASE=konakore
+    ports:
+      - "3307:3306"
+    volumes:
+      - /opt/konakore/db:/var/lib/mysql
+
   server:
-    image: cheerchen37/konakore-web
-    restart: always
+    image: cheerchen37/konakore-web:latest
+    container_name: konakore-web
+    restart: unless-stopped
+    depends_on:
+      - db
     volumes:
       - /mnt/hd1/Wallpaper:/wallpaper
       - /opt/konakore:/assets
     ports:
       - "7079:80"
     environment:
-      wpath: "/wallpaper"
-      dsn: "root:please_change@tcp(192.168.0.110:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
-    container_name: konakore-web
-  syncer:
-    image: cheerchen37/konakore-syncer
-    restart: always
-    environment:
-      dsn: "root:please_change@tcp(192.168.0.110:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
-      spec_update_tag: "0 0 * * *"
-      spec_newest_post: "0 * * * *"
-      spec_oldest_post: "*/5 * * * *"
-    container_name: konakore-syncer
-
+      dsn: "root:please_change@tcp(konakore-db:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
+      sync_spec: "0 */2 * * *" # every 2 hours
+      proxy: "socks5://192.168.0.110:7891"

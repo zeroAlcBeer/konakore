@@ -1,31 +1,35 @@
 package models
 
 import (
+	"strings"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	myclient "konakore/pkg/client"
-	"log"
-	"os"
 )
 
-var (
-	db     *gorm.DB
-	client myclient.Client
-)
+var db *gorm.DB
 
-func OpenDb() {
+func OpenDb(dsn, env string) (*gorm.DB, error) {
 	var err error
-	dsn := os.Getenv("dsn")
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		// NamingStrategy: schema.NamingStrategy{
+		// 	SingularTable: true,
+		// },
+	})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	debug := os.Getenv("debug")
-	if debug != "" {
+	if strings.TrimSpace(env) == "dev" {
 		db = db.Debug()
 	}
-	//err = db.AutoMigrate(&Post{}, &Like{}, &Tag{})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	err = db.AutoMigrate(&Post{}, &Like{}, Tag{})
+	if err != nil {
+		return nil, err
+	}
+	return db, err
+}
+
+func GetDb() *gorm.DB {
+	return db
 }

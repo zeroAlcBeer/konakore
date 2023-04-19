@@ -166,6 +166,4 @@ func DownloadFile(file *KFile, u string) {
 		log.Error(err)
 	}
 	log.Infof("save to ./%s", dst)
-
-	return
 }

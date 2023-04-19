@@ -12,6 +12,7 @@ import (
 
 	"github.com/imroc/req/v3"
 	log "github.com/kataras/golog"
+
 	myclient "konakore/pkg/client"
 )
 
@@ -165,6 +166,4 @@ func DownloadFile(file *KFile, u string) {
 		log.Error(err)
 	}
 	log.Infof("save to ./%s", dst)
-
-	return
 }

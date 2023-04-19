@@ -143,7 +143,7 @@ func UpdateTfIdf() {
 	//idfMap := make(map[string]float64)
 
 	countMap := GetTagCount()
-	for tag, _ := range tf1 {
+	for tag := range tf1 {
 		if _, ok := countMap[tag]; !ok {
 			countMap[tag] = 1
 		}

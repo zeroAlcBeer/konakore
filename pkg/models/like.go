@@ -6,8 +6,7 @@ import (
 )
 
 type Like struct {
-	Id      int64 `gorm:"column:id" json:"id" form:"id"`
-	Pending bool  `gorm:"column:pending" json:"pending" form:"pending"`
+	Id int64 `gorm:"column:id" json:"id" form:"id"`
 }
 
 func (p *Post) Unlike(id int64) (err error) {
@@ -15,11 +14,11 @@ func (p *Post) Unlike(id int64) (err error) {
 }
 
 func (p *Post) Like(id int64) (err error) {
-	return db.Create(&Like{Id: id, Pending: true}).Error
+	return db.Create(&Like{Id: id}).Error
 }
 
 func (p *Post) Done(id int64) (err error) {
-	return db.Save(&Like{Id: id, Pending: false}).Error
+	return db.Save(&Like{Id: id}).Error
 }
 
 func LikeAll(in []int64) (err error) {

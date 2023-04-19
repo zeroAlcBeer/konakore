@@ -16,3 +16,8 @@
 
 .idea
 .vscode
+
+docker-compose-macos.yaml
+
+# Ignore everything in this directory
+bin/

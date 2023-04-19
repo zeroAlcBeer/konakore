@@ -1,14 +1,14 @@
 package models
 
 import (
-	log "github.com/kataras/golog"
 	"os"
+
+	log "github.com/kataras/golog"
 )
 
-var wpath = ""
+const wpath = "/wallpaper"
 
 func CheckPath() {
-	wpath = os.Getenv("wpath")
 	if err := ensureDir(wpath); err != nil {
 		log.Fatalf("Error reading path, %s", err)
 	}
@@ -22,7 +22,7 @@ func ensureDir(dirName string) error {
 	return err
 }
 
-func Sync() {
+func AddLocalPosts() {
 	pics := LoadFiles(wpath)
 	if len(pics) == 0 {
 		log.Warnf("Wallpaper path empty!")
@@ -40,6 +40,4 @@ func Sync() {
 	}
 
 	log.Infof("synced: %d", len(ids))
-
-	return
 }

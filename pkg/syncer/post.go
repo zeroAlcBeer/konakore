@@ -1,52 +1,15 @@
-package main
+package syncer
 
 import (
 	"fmt"
-	log "github.com/kataras/golog"
-	"github.com/robfig/cron/v3"
-	"gorm.io/driver/mysql"
+
+	myclient "konakore/pkg/client"
+	"konakore/pkg/models"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	myclient "konakore/pkg/client"
-	"os"
+	"k8s.io/klog"
 )
-
-var db *gorm.DB
-
-func main() {
-	var err error
-	dsn := os.Getenv("dsn")
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	debug := os.Getenv("debug")
-	if debug != "" {
-		db = db.Debug()
-	}
-
-	// cron
-	c := cron.New()
-	c.Start()
-
-	_, err = c.AddFunc(os.Getenv("spec_update_tag"), UpdateTags)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = c.AddFunc(os.Getenv("spec_newest_post"), NewestPosts)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = c.AddFunc(os.Getenv("spec_oldest_post"), OldestPosts)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	select {}
-}
 
 type Post struct {
 	Id             int64  `gorm:"column:id" json:"id" form:"id"`
@@ -78,14 +41,26 @@ type Tag struct {
 	Count int64  `gorm:"column:count" json:"count" form:"count"`
 }
 
+var (
+	db *gorm.DB
+)
+
+func InitDB() {
+	db = models.GetDb()
+}
+
 var reqclient = myclient.New()
+
+func SetProxyUrl(proxy string) {
+	reqclient.SetProxyUrl(proxy)
+}
 
 func getPosts(page int) ([]*Post, error) {
 	var posts []*Post
 
 	u := fmt.Sprintf("https://konachan.com/post.json?limit=%d&page=%d", 100, page)
 
-	log.Infof("req: %s", u)
+	klog.Infof("request url: %s", u)
 	err := reqclient.GetJSON(u, &posts)
 
 	return posts, err
@@ -96,7 +71,7 @@ func getTags(limit int) ([]*Tag, error) {
 
 	u := fmt.Sprintf("https://konachan.com/tag.json?limit=%d&order=count", limit)
 
-	log.Infof("req: %s", u)
+	klog.Infof("request url: %s", u)
 	err := reqclient.GetJSON(u, &tags)
 
 	return tags, err
@@ -109,10 +84,11 @@ func currentPage() int {
 }
 
 func updatePosts(page int) {
-	log.Infof("update posts in page %d...", page)
+	klog.Infof("get posts... page: %d", page)
+
 	posts, err := getPosts(page)
 	if err != nil {
-		log.Errorf("get posts err: %s", err)
+		klog.Errorf("get posts err: %s", err)
 		return
 	}
 
@@ -121,44 +97,6 @@ func updatePosts(page int) {
 	}).Create(&posts).Error
 
 	if err != nil {
-		log.Errorf("UpdateAll posts err: %s", err)
-	}
-}
-
-func NewestPosts() {
-	updatePosts(1)
-}
-
-func OldestPosts() {
-	updatePosts(currentPage())
-}
-
-func UpdateTags() {
-	log.Infof("update tags ...")
-	tags, err := getTags(30000)
-	if err != nil {
-		log.Errorf("get tags err: %s", err)
-		return
-	}
-
-	err = db.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(tags[0:10000]).Error
-	if err != nil {
-		log.Errorf("UpdateAll tags err: %s", err)
-	}
-
-	err = db.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(tags[10000:20000]).Error
-	if err != nil {
-		log.Errorf("UpdateAll tags err: %s", err)
-	}
-
-	err = db.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(tags[20000:30000]).Error
-	if err != nil {
-		log.Errorf("UpdateAll tags err: %s", err)
+		klog.Warningf("update posts to db err: %s", err)
 	}
 }

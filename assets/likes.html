@@ -1,0 +1,415 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="never" name="referrer" />
+    <meta content="width=device-width, initial-scale=1,maximum-scale=1, user-scalable=no" name="viewport">
+    <title>
+        Kona-kore
+    </title>
+    <!-- Import PhotoSwipe Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.3.4/dist/photoswipe.css" rel="stylesheet">
+    <link href="/favicon.ico" rel="shortcut icon" />
+    <link href="/favicon.ico" rel="bookmark" />
+    <!-- A touch of fanciness 💄 -->
+    <link href="https://fonts.googleapis.com/css?family=Bitter:400,700,400italic" rel="stylesheet" type="text/css" />
+    <style>
+        body {
+            background: #222;
+            font-family: 'Bitter', Georgia, Times, sans-serif;
+        }
+
+        h1 {
+            margin: 2em;
+        }
+
+        .pswp__custom-caption {
+            background: rgba(34, 34, 34, 0.75);
+            font-size: 14px;
+            color: #fff;
+            width: calc(100% - 32px);
+            max-width: 420px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            position: absolute;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+        }
+
+        /*.pswp__custom-caption a {*/
+        /*    color: #fff;*/
+        /*    text-decoration: underline;*/
+        /*}*/
+
+        .hidden-caption-content {
+            display: none;
+        }
+
+        img {
+            margin-top: 8px;
+            vertical-align: middle;
+            width: 95%;
+        }
+
+        .container {
+            max-width: 1230px;
+        }
+
+        .tag [data-role="remove"] {
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        .tag [data-role="remove"]:after {
+            content: "x";
+            padding: 0px 2px;
+        }
+
+        .item-move {
+            transition: all .5s cubic-bezier(.55, 0, .1, 1);
+            -webkit-transition: all .5s cubic-bezier(.55, 0, .1, 1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Vue app -->
+    <div class="container" id="app">
+        <h1 class="text-center">
+            <a href="/">Posts</a> /
+            <a href="javascript:" @click.prevent="page=0;pageSize=300;orderBy=id">Likes</a>
+        </h1>
+        <br />
+        <small>
+            <select v-model="pageSize">
+                <option value="100">100p</option>
+                <option value="200">200p</option>
+                <option value="300">300p</option>
+                <option value="400">400p</option>
+                <option value="500">500p</option>
+            </select>
+            <select v-model="orderBy">
+                <option value="my_score">tfidf+Score</option>
+                <option value="tf_idf">tfidf</option>
+                <option value="score">Score</option>
+                <option value="id">id</option>
+                <option value="file_size">filesize</option>
+                <option value="waifu_pillow">waifu_pillow</option>
+                <option value="shuffle">shuffle</option>
+            </select>
+            <select v-model="sort">
+                <option value="-id">-id</option>
+                <option value="id">+id</option>
+            </select>
+        </small>
+        <span class="tag badge badge-info" v-if="query!=''">
+            {{query}}
+            <span @click="setQuery()" data-role="remove">
+            </span>
+        </span>
+        <small style="float: right">
+            <a @click.prevent="pageWhat(page - 1)" href="javascript:">
+                ← Prev
+            </a>
+            <a @click.prevent="pageWhat(page + 1)" href="javascript:">
+                Next →
+            </a>
+        </small>
+        <!-- Galley wrapper that contains all items -->
+        <waterfall :line-gap="300" :watch="slides">
+            <waterfall-slot :height="item.height" :key="item.id" :order="index" :width="item.width"
+                move-class="item-move" v-for="(item, index) in slides">
+                <a :data-caption="item.tags" :data-height="item.h" :data-width="item.w" :href="item.src"
+                    @click.prevent="goTo(index)">
+                    <img :alt="item.tags" :data-id="item.id" v-lazy="item.msrc" />
+                </a>
+                <div :caption-id="item.id" class="hidden-caption-content">
+                    <p>
+                        <a :href="'https://konachan.com/post/show/'+item.id" target="_blank">
+                            {{item.id}}
+                        </a>
+                        -
+                        <a :href="'?query=' + tag + ''" v-for="(tag, index) in item.tags.split(' ')">
+                            <span class="badge badge-info">
+                                {{tag}}
+                            </span>
+                        </a>
+                    </p>
+                    <p>
+                        tfidf+Score：{{item.my_score.toFixed(4)}} / tfidf：{{item.tf_idf.toFixed(4)}} / Disp:
+                        {{item.w}}x{{item.h}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}
+                    </p>
+                    <p>
+                        <i class="icon-heart">
+                        </i>
+                        {{item.score}}
+                        <i class="icon-time">
+                        </i>
+                        {{item.created_at}}
+                    </p>
+                </div>
+            </waterfall-slot>
+        </waterfall>
+    </div>
+    <!-- Import jQuery and PhotoSwipe Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-waterfall@1.0.6/lib/vue-waterfall.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3.4.2/dist/vue-loading.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vue-loading-overlay@3.4.2/dist/vue-loading.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vue-lazyload@1.3.3/vue-lazyload.min.js"></script>
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe@5.3.4/dist/photoswipe-lightbox.esm.min.js';
+        import PhotoSwipeFullscreen
+            from 'https://cdn.jsdelivr.net/gh/arnowelzel/photoswipe-fullscreen/photoswipe-fullscreen.esm.min.js';
+
+        Vue.use(VueLoading);
+        Vue.use(VueLazyload, {
+            // set observer to true
+            observer: true,
+
+            // optional
+            observerOptions: {
+                rootMargin: '0px',
+                threshold: 0.5
+            }
+        });
+
+        let app = new Vue(
+            {
+                components: {
+                    'waterfall': Waterfall.waterfall,
+                    'waterfall-slot': Waterfall.waterfallSlot,
+                    'loading': VueLoading,
+                },
+                el: '#app',
+                data: {
+                    pageSize: 300,
+                    page: 0,
+                    query: "",
+                    sort: "-id",
+                    slides: [],
+                    orderBy: "my_score",
+                    cancelCtrl: null,
+                    urlParams: null,
+                },
+                watch: {
+                    params: function () {
+                        this.updateSlides()
+                    },
+                    orderBy: function () {
+                        this.sortOrderBy()
+                    },
+                },
+                computed: {
+                    params: function () {
+                        let params = `/api/likes?size=${this.pageSize}&page=${this.page}&sort=${this.sort}`; //&filters=["id","like","213"]
+                        if (this.query.length !== 0) {
+                            params += `&query=${this.query}`
+                        }
+                        return params
+                    },
+                },
+                created() {
+                    this.urlParams = new URLSearchParams(window.location.search);
+                    if (this.urlParams.has('query')) {
+                        this.query = encodeURIComponent(this.urlParams.get('query'))
+                    }
+                },
+                methods: {
+                    sortOrderBy: function () {
+                        let v = this.orderBy;
+                        if (v === "shuffle") {
+                            this.slides.sort((a, b) => (Math.random() - 0.5));
+                        } else {
+                            this.slides.sort((a, b) => (a[v] < b[v]) ? 1 : ((b[v] < a[v]) ? -1 : 0));
+                        }
+                    },
+                    formatBytes: function (a, b) {
+                        if (0 === a) return "0 Bytes";
+                        let c = 1024, d = b || 2, e = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
+                            f = Math.floor(Math.log(a) / Math.log(c));
+                        return parseFloat((a / Math.pow(c, f)).toFixed(d)) + " " + e[f]
+                    },
+                    getTimestamp: function (UNIX_timestamp) {
+                        const pad = (n, s = 2) => (`${new Array(s).fill(0)}${n}`).slice(-s);
+                        const d = new Date(UNIX_timestamp * 1000);
+                        return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                    },
+                    pageWhat: function (p) {
+                        if (p >= 0 && this.page !== p) {
+                            this.page = p
+                        }
+                    },
+                    goTo: function (index) {
+                        this.initLightBox();
+                        this.lightbox.loadAndOpen(index);
+                    },
+                    setQuery: function () {
+                        window.history.pushState({}, document.title, window.location.pathname);
+                        this.query = ""
+                    },
+                    updateSlides: function () {
+                        let loader = this.$loading.show({
+                            container: null,
+                            canCancel: false,
+                        });
+
+                        this.slides = [];
+                        if (this.cancelCtrl != null) {
+                            this.cancelCtrl.abort()
+                        }
+                        this.cancelCtrl = new AbortController();
+                        axios.get(this.params, {
+                            signal: this.cancelCtrl.signal
+                        })
+                            .then((response) => {
+                                // console.log(response);
+                                response.data.data.forEach((item) => {
+                                    let fr = item.md5.substring(0, 2);
+                                    let nr = item.md5.substring(2, 4);
+
+                                    let slideItem = {
+                                        msrc: `https://konachan.com/data/preview/${fr}/${nr}/${item.md5}.jpg`,
+                                        src: item.sample_file_size
+                                            ? item.sample_url
+                                            : item.jpeg_file_size
+                                                ? item.jpeg_url
+                                                : item.file_url,
+                                        w: item.width,
+                                        width: item.sample_width,
+                                        h: item.height,
+                                        height: item.sample_height,
+                                        title: '',
+                                        tags: item.tags,
+                                        is_like: !!item.likes,
+                                        id: item.id,
+                                        my_score: item.my_score,
+                                        score: item.score,
+                                        tf_idf: item.tf_idf,
+                                        rating: item.rating,
+                                        size: item.size,
+                                        file_size: item.file_size,
+                                        waifu_pillow: item.waifu_pillow,
+                                        created_at: this.getTimestamp(item.created_at),
+                                        fmt_size: this.formatBytes(item.file_size),
+                                    };
+
+                                    this.slides.push(slideItem);
+
+                                });
+                            })
+                            .finally(() => {
+                                this.sortOrderBy()
+                                loader.hide()
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                    },
+                    initLightBox: function () {
+                        this.lightbox = new PhotoSwipeLightbox({
+                            dataSource: this.slides,
+                            bgOpacity: 0.85,
+                            showHideAnimationType: 'zoom',
+                            pswpModule: () => import('https://cdn.jsdelivr.net/npm/photoswipe@5.3.4/dist/photoswipe.esm.js'),
+                        });
+
+                        const fullscreenPlugin = new PhotoSwipeFullscreen(this.lightbox);
+
+                        this.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
+                            return document.querySelector('[data-id="' + data.id + '"]');
+                        });
+
+                        this.lightbox.on('uiRegister', function () {
+                            app.lightbox.pswp.ui.registerElement({
+                                name: 'custom-caption',
+                                order: 9,
+                                isButton: false,
+                                appendTo: 'root',
+                                html: 'Caption text',
+                                onInit: (el, pswp) => {
+                                    pswp.on('change', () => {
+                                        // console.log(pswp.currSlide)
+                                        let id = pswp.currSlide.data.id
+                                        let captionEl = document.querySelector('[caption-id="' + id + '"]')
+                                        el.innerHTML = captionEl.innerHTML;
+                                    });
+                                },
+                            });
+                        });
+
+                        this.lightbox.on('uiRegister', function () {
+                            app.lightbox.pswp.ui.registerElement({
+                                name: 'download-button',
+                                order: 8,
+                                isButton: true,
+                                tagName: 'a',
+                                html: {
+                                    isCustomSVG: true,
+                                    inner: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5"/></svg>',
+                                    outlineID: 'pswp__icn-download'
+                                },
+                                onClick: function (event, el, pswp) {
+                                    let id = pswp.currSlide.data.id
+                                    // console.log('change');
+                                    // el.href = pswp.currSlide.data.src;
+                                    app.lightbox.destroy();
+                                    let loader = app.$loading.show({
+                                        container: null,
+                                        canCancel: false,
+                                    });
+                                    axios.get("/like/" + id).finally(() => {
+                                        loader.hide()
+                                        app.updateSlides()
+                                    }).catch(function (error) {
+                                        console.log(error);
+                                    });
+                                }
+                            });
+                        });
+
+                        this.lightbox.on('uiRegister', function () {
+                            app.lightbox.pswp.ui.registerElement({
+                                name: 'unlike-button',
+                                order: 7,
+                                isButton: true,
+                                tagName: 'a',
+                                html: {
+                                    isCustomSVG: true,
+                                    inner: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
+                                    outlineID: 'pswp__icn-heart'
+                                },
+                                onClick: function (event, el, pswp) {
+                                    let id = pswp.currSlide.data.id
+                                    // console.log('change');
+                                    // el.href = pswp.currSlide.data.src;
+                                    app.lightbox.destroy();
+                                    let loader = app.$loading.show({
+                                        container: null,
+                                        canCancel: false,
+                                    });
+                                    axios.get("/unlike/" + id).finally(() => {
+                                        loader.hide()
+                                        app.updateSlides()
+                                    }).catch(function (error) {
+                                        console.log(error);
+                                    });
+                                }
+                            });
+                        });
+                        this.lightbox.init();
+                    }
+                },
+                mounted: function () {
+                    this.updateSlides()
+                }
+            }
+        );
+    </script>
+</body>
+
+</html>

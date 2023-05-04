@@ -93,7 +93,7 @@ func Mark(p *Post) {
 	if !ok {
 		scaleFactor = 1.0
 	}
-	p.MyScore = p.TfIDf * scaleFactor
+	p.MyScore = p.TfIDf + (scaleFactor*math.Log(float64(p.Score+1)))/float64(len(tags))
 
 	p.WaifuPillow = p.Width > p.Height*2
 }

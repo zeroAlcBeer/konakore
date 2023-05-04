@@ -79,8 +79,8 @@
     <!-- Vue app -->
     <div class="container" id="app">
         <h1 class="text-center">
-            <a href="/">Posts</a> /
-            <a href="javascript:" @click.prevent="page=0;pageSize=300;orderBy=id">Likes</a>
+            <a href="/?p=0">Posts</a> /
+            <a href="/likes?p=0">Likes</a>
         </h1>
         <br />
         <small>
@@ -111,12 +111,8 @@
             </span>
         </span>
         <small style="float: right">
-            <a @click.prevent="pageWhat(page - 1)" href="javascript:">
-                ← Prev
-            </a>
-            <a @click.prevent="pageWhat(page + 1)" href="javascript:">
-                Next →
-            </a>
+            <a :href="prevUrl">← Prev</a>
+            <a :href="nextUrl">Next →</a>
         </small>
         <!-- Galley wrapper that contains all items -->
         <waterfall :line-gap="300" :watch="slides">
@@ -192,7 +188,7 @@
                     query: "",
                     sort: "-id",
                     slides: [],
-                    orderBy: "my_score",
+                    orderBy: "id",
                     cancelCtrl: null,
                     urlParams: null,
                 },
@@ -212,11 +208,29 @@
                         }
                         return params
                     },
+                    prevUrl() {
+                        const prevPage = this.page > 0 ? this.page - 1 : 0;
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const queryParam = urlParams.get('query');
+                        const queryStr = queryParam ? `&query=${queryParam}` : '';
+                        return `?p=${prevPage}${queryStr}`;
+                    },
+                    nextUrl() {
+                        const nextPage = this.page + 1;
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const queryParam = urlParams.get('query');
+                        const queryStr = queryParam ? `&query=${queryParam}` : '';
+                        return `?p=${nextPage}${queryStr}`;
+                    },
                 },
                 created() {
                     this.urlParams = new URLSearchParams(window.location.search);
                     if (this.urlParams.has('query')) {
                         this.query = encodeURIComponent(this.urlParams.get('query'))
+                    }
+                    if (this.urlParams.has('p')) {
+                        this.page = encodeURIComponent(this.urlParams.get('p'))
+                        this.page = parseInt(this.page, 10)
                     }
                 },
                 methods: {
@@ -238,11 +252,6 @@
                         const pad = (n, s = 2) => (`${new Array(s).fill(0)}${n}`).slice(-s);
                         const d = new Date(UNIX_timestamp * 1000);
                         return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-                    },
-                    pageWhat: function (p) {
-                        if (p >= 0 && this.page !== p) {
-                            this.page = p
-                        }
                     },
                     goTo: function (index) {
                         this.initLightBox();
@@ -362,7 +371,7 @@
                                         container: null,
                                         canCancel: false,
                                     });
-                                    axios.get("/like/" + id).finally(() => {
+                                    axios.post("/like/" + id).finally(() => {
                                         loader.hide()
                                         app.updateSlides()
                                     }).catch(function (error) {
@@ -392,7 +401,7 @@
                                         container: null,
                                         canCancel: false,
                                     });
-                                    axios.get("/unlike/" + id).finally(() => {
+                                    axios.post("/unlike/" + id).finally(() => {
                                         loader.hide()
                                         app.updateSlides()
                                     }).catch(function (error) {

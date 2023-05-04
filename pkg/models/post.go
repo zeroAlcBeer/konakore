@@ -60,49 +60,71 @@ func GetPostsStmt(query string) *gorm.DB {
 	return stmt
 }
 
-func Mark(p *Post, avgMap map[string]float64) {
+var ratingScalingFactor = map[string]float64{
+	"s": 1.0,
+	"q": 0.9,
+	"e": 0.8,
+}
+
+func Mark(p *Post) {
 	tags := strings.Split(p.Tags, " ")
 
-	// version 2
+	var maxTfIdf float64
+
+	// Calculate the TF-IDF value for each tag and track the maximum TF-IDF value
 	for _, tag := range tags {
 		if t, ok := tfIdf[tag]; ok {
 			p.TfIDf += t
+			if t > maxTfIdf {
+				maxTfIdf = t
+			}
 		}
 	}
-	p.TfIDf = p.TfIDf / float64(len(tags))
-	p.MyScore = p.TfIDf + math.Log(float64(p.Score+1)/avgMap[p.Rating])/float64(len(tags))
+
+	// Normalize the TF-IDF score and divide by the number of tags
+	if maxTfIdf > 0 {
+		p.TfIDf = (p.TfIDf / maxTfIdf) / float64(len(tags))
+	} else {
+		p.TfIDf = 0
+	}
+
+	// Apply the rating-based scaling factor
+	scaleFactor, ok := ratingScalingFactor[p.Rating]
+	if !ok {
+		scaleFactor = 1.0
+	}
+	p.MyScore = p.TfIDf * scaleFactor
 
 	p.WaifuPillow = p.Width > p.Height*2
-	//_ = p.SortTagsByTfIdf(tfIdf)
 }
 
-func AvgMap(ps []Post) map[string]float64 {
-	avgMap := make(map[string]float64)
-	sumMap := make(map[string]float64)
-	lenMap := make(map[string]int)
-	for _, post := range ps {
-		if _, ok := sumMap[post.Rating]; !ok {
-			sumMap[post.Rating] = float64(post.Score)
-		} else {
-			sumMap[post.Rating] += float64(post.Score)
-		}
+// func AvgMap(ps []Post) map[string]float64 {
+// 	avgMap := make(map[string]float64)
+// 	sumMap := make(map[string]float64)
+// 	lenMap := make(map[string]int)
+// 	for _, post := range ps {
+// 		if _, ok := sumMap[post.Rating]; !ok {
+// 			sumMap[post.Rating] = float64(post.Score)
+// 		} else {
+// 			sumMap[post.Rating] += float64(post.Score)
+// 		}
 
-		if _, ok := lenMap[post.Rating]; !ok {
-			lenMap[post.Rating] = 1
-		} else {
-			lenMap[post.Rating] += 1
-		}
-	}
+// 		if _, ok := lenMap[post.Rating]; !ok {
+// 			lenMap[post.Rating] = 1
+// 		} else {
+// 			lenMap[post.Rating] += 1
+// 		}
+// 	}
 
-	for ranting, sum := range sumMap {
-		if l, ok := lenMap[ranting]; ok {
-			avgMap[ranting] = float64(sum) / float64(l)
-		}
-	}
-	log.Infof("created avgMap: %v", avgMap)
+// 	for ranting, sum := range sumMap {
+// 		if l, ok := lenMap[ranting]; ok {
+// 			avgMap[ranting] = float64(sum) / float64(l)
+// 		}
+// 	}
+// 	log.Infof("created avgMap: %v", avgMap)
 
-	return avgMap
-}
+// 	return avgMap
+// }
 
 var tfIdf map[string]float64
 
@@ -112,8 +134,10 @@ func UpdateTfIdf() {
 	err := post.Last()
 	if err != nil {
 		log.Warnf("get lastid err: %s", err)
+	} else {
+		lastId = post.Id
 	}
-	lastId = post.Id
+
 	log.Infof("post last id: %d", lastId)
 
 	pts := GetLikeTags()
@@ -123,19 +147,8 @@ func UpdateTfIdf() {
 	for _, pt := range pts {
 		tags := strings.Split(pt, " ")
 		for _, tag := range tags {
-
-			if _, ok := tf1[tag]; !ok {
-				tf1[tag] = 1
-			} else {
-				tf1[tag] += 1
-			}
-
-			if _, ok := tf2[tag]; !ok {
-				tf2[tag] = len(tags)
-			} else {
-				tf2[tag] += len(tags)
-			}
-
+			tf1[tag] += 1
+			tf2[tag] += len(tags)
 		}
 	}
 
@@ -159,10 +172,6 @@ func UpdateTfIdf() {
 
 func BuildURL(p *Post) {
 	p.SampleURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/sample/%s/Konachan.com - %d sample.jpg", p.Md5, p.Id))
-	// if p.IsLike {
-	// 	p.SampleURL = fmt.Sprintf("/sample/%d", p.Id)
-	// }
-
 	p.JpegURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/jpeg/%s/Konachan.com - %d %s.jpg", p.Md5, p.Id, p.Tags))
 	p.FileURL, _ = urlEncoded(fmt.Sprintf("https://konachan.com/image/%s/1.jpg", p.Md5))
 

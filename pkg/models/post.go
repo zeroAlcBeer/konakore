@@ -30,14 +30,16 @@ type Post struct {
 	Height         int    `gorm:"column:height" json:"height" form:"height"`
 	ParentId       int64  `gorm:"column:parent_id" json:"parent_id" form:"parent_id"`
 
-	Likes       *Like   `gorm:"foreignKey:id" json:"likes"`
-	FileURL     string  `gorm:"-" json:"file_url"`
-	SampleURL   string  `gorm:"-" json:"sample_url"`
-	JpegURL     string  `gorm:"-" json:"jpeg_url"`
-	PreviewURL  string  `gorm:"-" json:"preview_url"`
-	TfIDf       float64 `gorm:"-" json:"tf_idf"`
-	MyScore     float64 `gorm:"-" json:"my_score"`
-	WaifuPillow bool    `gorm:"-" json:"waifu_pillow"`
+	Likes          *Like   `gorm:"foreignKey:id" json:"likes"`
+	FileURL        string  `gorm:"-" json:"file_url"`
+	SampleURL      string  `gorm:"-" json:"sample_url"`
+	JpegURL        string  `gorm:"-" json:"jpeg_url"`
+	PreviewURL     string  `gorm:"-" json:"preview_url"`
+	TfIDf          float64 `gorm:"-" json:"tf_idf"`
+	MyScore        float64 `gorm:"-" json:"my_score"`
+	UserScore      float64 `gorm:"-" json:"user_score"`
+	TagCountWeight float64 `gorm:"-" json:"tag_count_weight"`
+	WaifuPillow    bool    `gorm:"-" json:"waifu_pillow"`
 }
 
 func (p *Post) Save() (err error) {
@@ -60,13 +62,7 @@ func GetPostsStmt(query string) *gorm.DB {
 	return stmt
 }
 
-var ratingScalingFactor = map[string]float64{
-	"s": 1.0,
-	"q": 0.9,
-	"e": 0.8,
-}
-
-func Mark(p *Post) {
+func Mark(p *Post, avgMap map[string]float64) {
 	tags := strings.Split(p.Tags, " ")
 
 	var maxTfIdf float64
@@ -88,43 +84,40 @@ func Mark(p *Post) {
 		p.TfIDf = 0
 	}
 
-	// Apply the rating-based scaling factor
-	scaleFactor, ok := ratingScalingFactor[p.Rating]
-	if !ok {
-		scaleFactor = 1.0
-	}
-	p.MyScore = p.TfIDf + (scaleFactor*math.Log(float64(p.Score+1)))/float64(len(tags))
+	p.UserScore = math.Log(float64(p.Score+1) / avgMap[p.Rating])
+	p.TagCountWeight = math.Log(float64(len(tags) + 1))
+	p.MyScore = p.TfIDf * p.TagCountWeight * p.UserScore
 
 	p.WaifuPillow = p.Width > p.Height*2
 }
 
-// func AvgMap(ps []Post) map[string]float64 {
-// 	avgMap := make(map[string]float64)
-// 	sumMap := make(map[string]float64)
-// 	lenMap := make(map[string]int)
-// 	for _, post := range ps {
-// 		if _, ok := sumMap[post.Rating]; !ok {
-// 			sumMap[post.Rating] = float64(post.Score)
-// 		} else {
-// 			sumMap[post.Rating] += float64(post.Score)
-// 		}
+func AvgMap(ps []Post) map[string]float64 {
+	avgMap := make(map[string]float64)
+	sumMap := make(map[string]float64)
+	lenMap := make(map[string]int)
+	for _, post := range ps {
+		if _, ok := sumMap[post.Rating]; !ok {
+			sumMap[post.Rating] = float64(post.Score)
+		} else {
+			sumMap[post.Rating] += float64(post.Score)
+		}
 
-// 		if _, ok := lenMap[post.Rating]; !ok {
-// 			lenMap[post.Rating] = 1
-// 		} else {
-// 			lenMap[post.Rating] += 1
-// 		}
-// 	}
+		if _, ok := lenMap[post.Rating]; !ok {
+			lenMap[post.Rating] = 1
+		} else {
+			lenMap[post.Rating] += 1
+		}
+	}
 
-// 	for ranting, sum := range sumMap {
-// 		if l, ok := lenMap[ranting]; ok {
-// 			avgMap[ranting] = float64(sum) / float64(l)
-// 		}
-// 	}
-// 	log.Infof("created avgMap: %v", avgMap)
+	for ranting, sum := range sumMap {
+		if l, ok := lenMap[ranting]; ok {
+			avgMap[ranting] = float64(sum) / float64(l)
+		}
+	}
+	log.Infof("created avgMap: %v", avgMap)
 
-// 	return avgMap
-// }
+	return avgMap
+}
 
 var tfIdf map[string]float64
 

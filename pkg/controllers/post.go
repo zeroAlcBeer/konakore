@@ -18,10 +18,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var posts []models.Post
 	page := paginate.New().With(models.GetPostsStmt(query)).Request(r).Response(&posts)
 
-	// avg := models.AvgMap(posts)
+	avg := models.AvgMap(posts)
 	//likes := models.Likes()
 	for index := range posts {
-		models.Mark(&posts[index])
+		models.Mark(&posts[index], avg)
 		models.BuildURL(&posts[index])
 	}
 
@@ -40,9 +40,9 @@ func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var posts []models.Post
 	page := paginate.New().With(models.GetLikesStmt(query)).Request(r).Response(&posts)
 
-	// avg := models.AvgMap(posts)
+	avg := models.AvgMap(posts)
 	for index := range posts {
-		models.Mark(&posts[index])
+		models.Mark(&posts[index], avg)
 		models.BuildURL(&posts[index])
 	}
 

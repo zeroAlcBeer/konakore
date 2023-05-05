@@ -65,28 +65,20 @@ func GetPostsStmt(query string) *gorm.DB {
 func Mark(p *Post, avgMap map[string]float64) {
 	tags := strings.Split(p.Tags, " ")
 
-	var maxTfIdf float64
-
 	// Calculate the TF-IDF value for each tag and track the maximum TF-IDF value
 	for _, tag := range tags {
 		if t, ok := tfIdf[tag]; ok {
 			p.TfIDf += t
-			if t > maxTfIdf {
-				maxTfIdf = t
-			}
 		}
 	}
+	p.TfIDf = p.TfIDf / float64(len(tags))
+	
+	// Calculate the normalized user score
+	scoreDiff := float64(p.Score) - avgMap[p.Rating]
 
-	// Normalize the TF-IDF score and divide by the number of tags
-	if maxTfIdf > 0 {
-		p.TfIDf = (p.TfIDf / maxTfIdf) / float64(len(tags))
-	} else {
-		p.TfIDf = 0
-	}
-
-	p.UserScore = math.Log(float64(p.Score+1) / avgMap[p.Rating])
+	p.UserScore = (1.0 + (scoreDiff / avgMap[p.Rating])) / 2.0
 	p.TagCountWeight = math.Log(float64(len(tags) + 1))
-	p.MyScore = p.TfIDf * p.TagCountWeight * p.UserScore
+	p.MyScore = p.TfIDf * p.UserScore
 
 	p.WaifuPillow = p.Width > p.Height*2
 }

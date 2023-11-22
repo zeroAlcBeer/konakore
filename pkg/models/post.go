@@ -72,13 +72,14 @@ func Mark(p *Post, avgMap map[string]float64) {
 		}
 	}
 	p.TfIDf = p.TfIDf / float64(len(tags))
-	
+
 	// Calculate the normalized user score
 	scoreDiff := float64(p.Score) - avgMap[p.Rating]
 
 	p.UserScore = (1.0 + (scoreDiff / avgMap[p.Rating])) / 2.0
 	p.TagCountWeight = math.Log(float64(len(tags) + 1))
-	p.MyScore = p.TfIDf * p.UserScore
+	//p.MyScore = p.TfIDf * p.UserScore
+	p.MyScore = p.TfIDf + math.Log(float64(p.Score+1)/avgMap[p.Rating])/float64(len(tags))
 
 	p.WaifuPillow = p.Width > p.Height*2
 }

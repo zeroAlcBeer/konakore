@@ -38,9 +38,16 @@ func GetLikesStmt(query string) *gorm.DB {
 	return stmt
 }
 
+func GetLikes() []*Post {
+	var pts []*Post
+	_ = GetLikesStmt("").
+		Find(&pts).Error
+	return pts
+}
+
 func GetLikeTags() []string {
 	var pts []string
-	_ = db.Model(&[]Post{}).Where("id in (select id from likes)").
+	_ = GetLikesStmt("").
 		Pluck("tags", &pts).Error
 	return pts
 }

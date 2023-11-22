@@ -36,6 +36,7 @@ func main() {
 	// init local files
 	models.CheckPath()
 	models.AddLocalPosts()
+	models.AddRemotePosts()
 	models.UpdateTfIdf()
 
 	router := httprouter.New()
@@ -51,7 +52,7 @@ func main() {
 
 	router.POST("/like/:id", controllers.Like)
 	router.POST("/unlike/:id", controllers.Unlike)
-	//router.GET("/sample/:id", controllers.Sample)
+	router.GET("/sample/:id", controllers.Sample)
 
 	handler := cors.Default().Handler(router)
 	withGz := gziphandler.GzipHandler(handler)

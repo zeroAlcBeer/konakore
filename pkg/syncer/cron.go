@@ -40,6 +40,13 @@ func OldestPosts() {
 	updatePosts(p)
 }
 
+func ForceUpdatePosts(p int) {
+	if p > 2000 {
+		return
+	}
+	updatePosts(p)
+}
+
 func UpdateTags() {
 	klog.Infof("update tags...")
 	tags, err := getTags(20000)

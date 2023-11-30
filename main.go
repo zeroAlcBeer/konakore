@@ -54,6 +54,8 @@ func main() {
 	router.POST("/unlike/:id", controllers.Unlike)
 	router.GET("/sample/:id", controllers.Sample)
 
+	router.GET("/force", controllers.Force)
+
 	handler := cors.Default().Handler(router)
 	withGz := gziphandler.GzipHandler(handler)
 

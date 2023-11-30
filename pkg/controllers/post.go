@@ -9,6 +9,7 @@ import (
 	"github.com/morkid/paginate"
 
 	"konakore/pkg/models"
+	"konakore/pkg/syncer"
 )
 
 // GetPosts ...
@@ -145,4 +146,17 @@ func Sample(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Cache-control", "max-age=315360000")
 	w.Write(byte)
 	byte = nil
+}
+
+// Force ...
+func Force(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	p, err := strconv.Atoi(r.URL.Query().Get("p"))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotAcceptable)
+		return
+	}
+	syncer.ForceUpdatePosts(p)
+	cJson(w, "OK", nil)
+	return
 }

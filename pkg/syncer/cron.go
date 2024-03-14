@@ -28,8 +28,17 @@ func AddCron(spec string) {
 	}
 }
 
+var currentParam int = 1
+
 func NewestPosts() {
-	updatePosts(1)
+	updatePosts(currentParam)
+
+	// 更新 currentParam 的值，如果是5，则重置为1，否则加1
+	if currentParam == 5 {
+		currentParam = 1
+	} else {
+		currentParam++
+	}
 }
 
 func OldestPosts() {
@@ -49,7 +58,7 @@ func ForceUpdatePosts(p int) {
 
 func UpdateTags() {
 	klog.Infof("update tags...")
-	tags, err := getTags(20000)
+	tags, err := getTags(10000)
 	if err != nil {
 		klog.Errorf("get tags err: %s", err)
 		return
@@ -57,14 +66,7 @@ func UpdateTags() {
 
 	err = db.Clauses(clause.OnConflict{
 		UpdateAll: true,
-	}).Create(tags[0:10000]).Error
-	if err != nil {
-		klog.Warningf("update tags err: %s", err)
-	}
-
-	err = db.Clauses(clause.OnConflict{
-		UpdateAll: true,
-	}).Create(tags[10000:20000]).Error
+	}).Create(tags).Error
 	if err != nil {
 		klog.Warningf("update tags err: %s", err)
 	}

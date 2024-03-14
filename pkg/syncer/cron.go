@@ -28,8 +28,17 @@ func AddCron(spec string) {
 	}
 }
 
+var currentParam int = 1
+
 func NewestPosts() {
-	updatePosts(1)
+	updatePosts(currentParam)
+
+	// 更新 currentParam 的值，如果是5，则重置为1，否则加1
+	if currentParam == 5 {
+		currentParam = 1
+	} else {
+		currentParam++
+	}
 }
 
 func OldestPosts() {

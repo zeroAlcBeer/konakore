@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/imroc/req/v3"
 )
@@ -20,6 +21,11 @@ func (rc *ReqClient) Get(url string) (*http.Response, error) {
 // GetJSON ...
 func (rc *ReqClient) GetJSON(url string, v interface{}) error {
 	rc.Client.SetAutoDecodeContentType("json")
+	c := os.Getenv("cookies")
+	rc.Client.SetCommonCookies(&http.Cookie{
+		Name:  "cf_clearance",
+		Value: c,
+	})
 	_, err := rc.Client.R().SetResult(v).Get(url)
 	return err
 }

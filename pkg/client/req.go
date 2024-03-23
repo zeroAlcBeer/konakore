@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -22,10 +23,25 @@ func (rc *ReqClient) Get(url string) (*http.Response, error) {
 func (rc *ReqClient) GetJSON(url string, v interface{}) error {
 	rc.Client.SetAutoDecodeContentType("json")
 	c := os.Getenv("cookies")
-	rc.Client.SetCommonCookies(&http.Cookie{
-		Name:  "cf_clearance",
-		Value: c,
-	})
+	//expiration, _ := time.Parse(time.RFC1123, "Sun, 23-Mar-25 15:03:41 GMT")
+
+	if c != "" {
+		cookie := &http.Cookie{
+			Name:  "cf_clearance",
+			Value: c,
+			Path:  "/",
+			//Expires:  expiration,
+			Domain:   ".konachan.com",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		}
+
+		rc.Client.SetCommonCookies(cookie)
+		fmt.Println("test cookies")
+		fmt.Println(c)
+	}
+
 	_, err := rc.Client.R().SetResult(v).Get(url)
 	return err
 }
@@ -59,5 +75,6 @@ func (rc *ReqClient) CheckDownloadUrl(url string) (bool, error) {
 // SetProxyUrl ...
 func (rc *ReqClient) SetProxyUrl(proxyUrl string) error {
 	rc.Client = rc.SetProxyURL(proxyUrl)
+	rc.Client = rc.SetUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 	return nil
 }

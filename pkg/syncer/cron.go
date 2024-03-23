@@ -12,7 +12,7 @@ func AddCron(spec string) {
 	c := cron.New()
 	c.Start()
 
-	_, err := c.AddFunc(spec, UpdateTags)
+	_, err := c.AddFunc("0 0 * * *", UpdateTags)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,8 +33,8 @@ var currentParam int = 1
 func NewestPosts() {
 	updatePosts(currentParam)
 
-	// 更新 currentParam 的值，如果是5，则重置为1，否则加1
-	if currentParam == 5 {
+	// 更新 currentParam 的值，如果是，则重置为1，否则加1
+	if currentParam == 12 {
 		currentParam = 1
 	} else {
 		currentParam++

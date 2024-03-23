@@ -27,9 +27,7 @@ func main() {
 	// init syncer
 	syncer.InitDB()
 	proxy := os.Getenv("proxy")
-	if proxy != "" {
-		syncer.SetProxyUrl(proxy)
-	}
+	syncer.SetProxyUrl(proxy)
 	spec := os.Getenv("sync_spec")
 	syncer.AddCron(spec)
 

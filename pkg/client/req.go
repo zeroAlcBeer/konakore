@@ -22,6 +22,7 @@ func (rc *ReqClient) Get(url string) (*http.Response, error) {
 // GetJSON ...
 func (rc *ReqClient) GetJSON(url string, v interface{}) error {
 	rc.Client.SetAutoDecodeContentType("json")
+	rc.Client.EnableInsecureSkipVerify()
 	c := os.Getenv("cookies")
 	//expiration, _ := time.Parse(time.RFC1123, "Sun, 23-Mar-25 15:03:41 GMT")
 
@@ -42,7 +43,7 @@ func (rc *ReqClient) GetJSON(url string, v interface{}) error {
 		fmt.Println(c)
 	}
 
-	_, err := rc.Client.R().SetResult(v).Get(url)
+	_, err := rc.Client.R().SetSuccessResult(v).Get(url)
 	return err
 }
 

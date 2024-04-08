@@ -28,3 +28,4 @@ services:
       dsn: "root:please_change@tcp(db:3306)/konakore?charset=utf8mb4&parseTime=True&loc=Local"
       sync_spec: "0 */2 * * *" # every 2 hours
       proxy: "socks5://192.168.0.110:7891"
+      cookies: ""

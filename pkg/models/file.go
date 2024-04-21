@@ -39,7 +39,7 @@ func LoadFiles(path string) (pics KFiles) {
 			return nil
 		}
 
-		id := regexp.MustCompile(`[[:digit:]]+`).FindString(info.Name())
+		id := regexp.MustCompile(`[:digit:]+`).FindString(info.Name())
 		if id == "" {
 			return nil
 		}

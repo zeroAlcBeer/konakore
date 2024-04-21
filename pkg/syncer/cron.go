@@ -37,7 +37,7 @@ func NewestPosts() {
 	}
 
 	// 更新 currentParam 的值，如果是，则重置为1，否则加1
-	if currentParam == 12 {
+	if currentParam == 6 {
 		currentParam = 1
 	} else {
 		currentParam++

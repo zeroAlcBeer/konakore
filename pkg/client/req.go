@@ -1,9 +1,7 @@
 package client
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/imroc/req/v3"
 )
@@ -23,25 +21,25 @@ func (rc *ReqClient) Get(url string) (*http.Response, error) {
 func (rc *ReqClient) GetJSON(url string, v interface{}) error {
 	rc.Client.SetAutoDecodeContentType("json")
 	rc.Client.EnableInsecureSkipVerify()
-	c := os.Getenv("cookies")
+	//c := os.Getenv("cookies")
 	//expiration, _ := time.Parse(time.RFC1123, "Sun, 23-Mar-25 15:03:41 GMT")
 
-	if c != "" {
-		cookie := &http.Cookie{
-			Name:  "cf_clearance",
-			Value: c,
-			Path:  "/",
-			//Expires:  expiration,
-			Domain:   ".konachan.com",
-			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-		}
-
-		rc.Client.SetCommonCookies(cookie)
-		fmt.Println("test cookies")
-		fmt.Println(c)
-	}
+	//if c != "" {
+	//	cookie := &http.Cookie{
+	//		Name:  "cf_clearance",
+	//		Value: c,
+	//		Path:  "/",
+	//		//Expires:  expiration,
+	//		Domain:   ".konachan.com",
+	//		HttpOnly: true,
+	//		Secure:   true,
+	//		SameSite: http.SameSiteNoneMode,
+	//	}
+	//
+	//	rc.Client.SetCommonCookies(cookie)
+	//	fmt.Println("test cookies")
+	//	fmt.Println(c)
+	//}
 
 	_, err := rc.Client.R().SetSuccessResult(v).Get(url)
 	return err

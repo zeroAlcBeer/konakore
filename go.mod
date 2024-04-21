@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
+	github.com/chromedp/chromedp v0.9.5
 	github.com/imroc/req/v3 v3.33.2
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kataras/golog v0.1.8

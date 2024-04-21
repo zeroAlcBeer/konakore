@@ -31,7 +31,10 @@ func AddCron(spec string) {
 var currentParam int = 1
 
 func NewestPosts() {
-	updatePosts(currentParam)
+	err := updatePosts(currentParam)
+	if err != nil {
+		return
+	}
 
 	// 更新 currentParam 的值，如果是，则重置为1，否则加1
 	if currentParam == 12 {

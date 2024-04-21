@@ -36,11 +36,13 @@ func LoadFiles(path string) (pics KFiles) {
 			return err
 		}
 		if info.IsDir() {
+			log.Warnf("walk %v", path)
 			return nil
 		}
 
-		id := regexp.MustCompile(`[:digit:]+`).FindString(info.Name())
+		id := regexp.MustCompile(`\d+`).FindString(info.Name())
 		if id == "" {
+			log.Warnf("walk id empty %v", info.Name())
 			return nil
 		}
 		var pic KFile

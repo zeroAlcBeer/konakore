@@ -1,15 +1,11 @@
 package syncer
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	myclient "konakore/pkg/client"
 	"konakore/pkg/models"
 
-	"github.com/chromedp/chromedp"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"k8s.io/klog"
@@ -65,9 +61,9 @@ func getPosts(page int) ([]*Post, error) {
 	u := fmt.Sprintf("https://konachan.com/post.json?limit=%d&page=%d", 100, page)
 
 	klog.Infof("request url: %s", u)
-	//err := reqclient.GetJSON(u, &posts)
-	str, err := getJson(u)
-	err = json.Unmarshal([]byte(str), &posts)
+	err := reqclient.GetJSON(u, &posts)
+	//str, err := getJson(u)
+	//err = json.Unmarshal([]byte(str), &posts)
 
 	return posts, err
 }
@@ -78,49 +74,49 @@ func getTags(limit int) ([]*Tag, error) {
 	u := fmt.Sprintf("https://konachan.com/tag.json?limit=%d&order=count", limit)
 
 	klog.Infof("request url: %s", u)
-	//err := reqclient.GetJSON(u, &tags)
-	str, err := getJson(u)
-	err = json.Unmarshal([]byte(str), &tags)
+	err := reqclient.GetJSON(u, &tags)
+	//str, err := getJson(u)
+	//err = json.Unmarshal([]byte(str), &tags)
 
 	return tags, err
 }
 
-func getJson(u string) (string, error) {
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.NoDefaultBrowserCheck,                                  //不检查默认浏览器
-		chromedp.Flag("headless", false),                                //开启图像界面,重点是开启这个
-		chromedp.Flag("enable-automation", false),                       // 绕过自动化测试工具检测
-		chromedp.Flag("disable-blink-features", "AutomationControlled"), // 也是绕过自动化测试工具检测
-		chromedp.DisableGPU,
-		chromedp.Flag(`disable-extensions`, true),
-		chromedp.UserDataDir("/assets/tmp"),
-		chromedp.Flag("disable-sync", false),
-		chromedp.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"),
-	)
-
-	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-
-	ctx, cancel := chromedp.NewContext(
-		allocCtx,
-		chromedp.WithLogf(klog.Infof),
-	)
-	defer cancel()
-
-	// 定义要获取的内容变量
-	var response string
-
-	// 执行任务：打开页面，等待某个特定元素加载完成，获取内容
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(u),
-		// 根据实际情况替换下面的选择器
-		chromedp.Sleep(time.Second*5),
-		chromedp.Text(`pre`, &response, chromedp.ByQuery),
-	)
-	if err != nil {
-		klog.Errorf("chrome get json err: %s", err)
-	}
-	return response, err
-}
+//func getJson(u string) (string, error) {
+//	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+//		chromedp.NoDefaultBrowserCheck,                                  //不检查默认浏览器
+//		chromedp.Flag("headless", false),                                //开启图像界面,重点是开启这个
+//		chromedp.Flag("enable-automation", false),                       // 绕过自动化测试工具检测
+//		chromedp.Flag("disable-blink-features", "AutomationControlled"), // 也是绕过自动化测试工具检测
+//		chromedp.DisableGPU,
+//		chromedp.Flag(`disable-extensions`, true),
+//		chromedp.UserDataDir("/assets/tmp"),
+//		chromedp.Flag("disable-sync", false),
+//		chromedp.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"),
+//	)
+//
+//	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+//
+//	ctx, cancel := chromedp.NewContext(
+//		allocCtx,
+//		chromedp.WithLogf(klog.Infof),
+//	)
+//	defer cancel()
+//
+//	// 定义要获取的内容变量
+//	var response string
+//
+//	// 执行任务：打开页面，等待某个特定元素加载完成，获取内容
+//	err := chromedp.Run(ctx,
+//		chromedp.Navigate(u),
+//		// 根据实际情况替换下面的选择器
+//		chromedp.Sleep(time.Second*5),
+//		chromedp.Text(`pre`, &response, chromedp.ByQuery),
+//	)
+//	if err != nil {
+//		klog.Errorf("chrome get json err: %s", err)
+//	}
+//	return response, err
+//}
 
 func currentPage() int {
 	var count int64

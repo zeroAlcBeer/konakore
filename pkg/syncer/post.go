@@ -58,7 +58,7 @@ func SetProxyUrl(proxy string) {
 func getPosts(page int) ([]*Post, error) {
 	var posts []*Post
 
-	u := fmt.Sprintf("https://konachan.com/post.json?limit=%d&page=%d", 100, page)
+	u := fmt.Sprintf("https://konachan.net/post.json?limit=%d&page=%d", 100, page)
 
 	klog.Infof("request url: %s", u)
 	err := reqclient.GetJSON(u, &posts)
@@ -71,7 +71,7 @@ func getPosts(page int) ([]*Post, error) {
 func getTags(limit int) ([]*Tag, error) {
 	var tags []*Tag
 
-	u := fmt.Sprintf("https://konachan.com/tag.json?limit=%d&order=count", limit)
+	u := fmt.Sprintf("https://konachan.net/tag.json?limit=%d&order=count", limit)
 
 	klog.Infof("request url: %s", u)
 	err := reqclient.GetJSON(u, &tags)

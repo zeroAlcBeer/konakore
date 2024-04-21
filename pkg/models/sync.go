@@ -2,6 +2,8 @@ package models
 
 import (
 	"os"
+	"strconv"
+	"strings"
 
 	log "github.com/kataras/golog"
 )
@@ -28,6 +30,7 @@ func AddLocalPosts() {
 		log.Warnf("Wallpaper path empty!")
 		return
 	}
+	log.Warnf("AddLocalPosts %v local files", len(pics))
 
 	var ids []int64
 	for _, pic := range pics {
@@ -48,6 +51,7 @@ func AddRemotePosts() {
 		log.Warnf("Wallpaper path empty!")
 		return
 	}
+	log.Warnf("AddRemotePosts %v local files", len(pics))
 
 	bMap := make(map[int64]bool)
 	for _, pic := range pics {
@@ -55,10 +59,12 @@ func AddRemotePosts() {
 	}
 
 	pts := GetLikes()
+	log.Warnf("AddRemotePosts %v GetLikes", len(pts))
 
+	var lostArr []string
 	for _, post := range pts {
 		if !bMap[post.Id] {
-			log.Infof("found lost post: %d", post.Id)
+			lostArr = append(lostArr, strconv.FormatInt(post.Id, 10))
 			//BuildURL(post)
 			//log.Infof("name built: %s", post.Tags)
 			//if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
@@ -68,4 +74,6 @@ func AddRemotePosts() {
 			//}
 		}
 	}
+	log.Infof("found lost post: %v", len(lostArr))
+	log.Infof("found lost post: %v", strings.Join(lostArr, ","))
 }

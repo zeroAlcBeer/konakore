@@ -27,7 +27,7 @@ func ensureDir(dirName string) error {
 func AddLocalPosts() {
 	pics := LoadFiles(wpath)
 	if len(pics) == 0 {
-		log.Warnf("Wallpaper path empty!")
+		log.Warnf("AddLocalPosts Wallpaper path empty!")
 		return
 	}
 	log.Warnf("AddLocalPosts %v local files", len(pics))
@@ -39,16 +39,16 @@ func AddLocalPosts() {
 
 	err := LikeAll(ids)
 	if err != nil {
-		log.Errorf("sync like post err: %s", err)
+		log.Errorf("AddLocalPosts sync like post err: %s", err)
 	}
 
-	log.Infof("synced: %d", len(ids))
+	log.Infof("AddLocalPosts synced: %d", len(ids))
 }
 
 func AddRemotePosts() {
 	pics := LoadFiles(wpath)
 	if len(pics) == 0 {
-		log.Warnf("Wallpaper path empty!")
+		log.Warnf("AddRemotePosts Wallpaper path empty!")
 		return
 	}
 	log.Warnf("AddRemotePosts %v local files", len(pics))
@@ -62,18 +62,26 @@ func AddRemotePosts() {
 	log.Warnf("AddRemotePosts %v GetLikes", len(pts))
 
 	var lostArr []string
+	var lostPts []*Post
 	for _, post := range pts {
 		if !bMap[post.Id] {
 			lostArr = append(lostArr, strconv.FormatInt(post.Id, 10))
-			//BuildURL(post)
-			//log.Infof("name built: %s", post.Tags)
-			//if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
-			//	go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.JpegURL)
-			//} else {
-			//	go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.FileURL)
-			//}
+			lostPts = append(lostPts, post)
 		}
 	}
-	log.Infof("found lost post: %v", len(lostArr))
-	log.Infof("found lost post: %v", strings.Join(lostArr, ","))
+	log.Infof("AddRemotePosts found lost post: %v", len(lostArr))
+	log.Infof("AddRemotePosts found lost post: %v", strings.Join(lostArr, ","))
+	if len(lostArr) < 10 {
+		for _, post := range lostPts {
+			BuildURL(post)
+			log.Infof("AddRemotePosts name built: %s", post.Tags)
+			if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
+				go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.JpegURL)
+			} else {
+				go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.FileURL)
+			}
+		}
+	} else {
+		log.Infof("AddRemotePosts too many lost post!: %v", len(lostArr))
+	}
 }

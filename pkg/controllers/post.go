@@ -72,7 +72,7 @@ func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	models.BuildURL(post)
 	var target string
-	if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
+	if post.JpegFileSize != 0 {
 		target = post.JpegURL
 	} else {
 		target = post.FileURL

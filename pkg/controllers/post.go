@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -69,18 +68,16 @@ func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err = post.Like(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
+	go post.Like(id)
 
 	models.BuildURL(post)
+	var target string
 	if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
-		go models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, post.JpegURL)
+		target = post.JpegURL
 	} else {
-		go models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, post.FileURL)
+		target = post.FileURL
 	}
+	models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
 	models.UpdateTfIdf()
 	cJson(w, "OK", nil)
 	return
@@ -114,38 +111,6 @@ func Unlike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	models.UpdateTfIdf()
 	cJson(w, "OK", nil)
 	return
-}
-
-// Sample ...
-func Sample(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotAcceptable)
-		return
-	}
-
-	pic, err := models.GetFileById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	if pic.Header == "" {
-		http.Error(w, "file format error", http.StatusNotFound)
-		return
-	}
-
-	byte, err := ioutil.ReadFile(pic.Name)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-type", pic.Header)
-	w.Header().Set("Cache-control", "max-age=315360000")
-	w.Write(byte)
-	byte = nil
 }
 
 // Force ...

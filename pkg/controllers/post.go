@@ -68,18 +68,16 @@ func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err = post.Like(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
+	go post.Like(id)
 
 	models.BuildURL(post)
+	var target string
 	if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
-		go models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, post.JpegURL)
+		target = post.JpegURL
 	} else {
-		go models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, post.FileURL)
+		target = post.FileURL
 	}
+	models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
 	models.UpdateTfIdf()
 	cJson(w, "OK", nil)
 	return

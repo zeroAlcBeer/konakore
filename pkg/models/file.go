@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,10 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/imroc/req/v3"
+	"github.com/gorilla/websocket"
 	log "github.com/kataras/golog"
-
-	myclient "konakore/pkg/client"
 )
 
 type KFile struct {
@@ -118,8 +117,6 @@ func (pic *KFile) BuildName(u string) {
 	pic.Name = fmt.Sprintf("Konachan.com - %d %s.%s", pic.Id, pic.Tags, pic.Ext)
 }
 
-var reqclient = myclient.New()
-
 // DownloadFile ...
 func DownloadFile(file *KFile, u string) {
 	file.BuildName(u)
@@ -127,45 +124,75 @@ func DownloadFile(file *KFile, u string) {
 
 	// check
 	log.Infof("downloading %v...", u)
-	exist, err := reqclient.CheckDownloadUrl(u)
-	if err != nil {
-		log.Error(err)
-	}
-	if !exist {
-		if strings.Contains(u, ".jpg") {
-			u = strings.Replace(u, ".jpg", ".png", 1)
-		} else if strings.Contains(u, ".png") {
-			u = strings.Replace(u, ".png", ".gif", 1)
-		} else if strings.Contains(u, ".gif") {
-			log.Error("retry download limit")
-			return
-		}
-		DownloadFile(file, u)
-	}
 
 	// path
 	idxStr := fmt.Sprintf("%02d", file.Id/10000)
-	err = ensureDir(path.Join(wpath, idxStr))
+	err := ensureDir(path.Join(wpath, idxStr))
 	if err != nil {
 		log.Errorf("ensureDir err:", err)
 		return
 	}
 	dst := path.Join(wpath, idxStr, file.Name)
 
-	// done in callback
-	callback := func(info req.DownloadInfo) {
-		fmt.Printf("downloaded %.2f%%\n", float64(info.DownloadedSize)/float64(info.Response.ContentLength)*100.0)
-
-		if info.Response.ContentLength != 0 && (info.DownloadedSize == info.Response.ContentLength) {
-			err = (&Post{}).Done(file.Id)
-		}
-
-	}
-
-	// real download
-	err = reqclient.Download(u, dst, callback)
+	err = downloadFile(idxStr, u, file.Name, "p3terx")
 	if err != nil {
-		log.Error(err)
+		fmt.Printf("Error downloading file: %v\n", err)
 	}
+
 	log.Infof("save to ./%s", dst)
+}
+
+// 调用aria2的JSON-RPC接口下载文件（通过WebSocket）
+func downloadFile(folderPath, u, fileName, secret string) error {
+	// 构造WebSocket连接
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial("ws://192.168.151.62:6800/jsonrpc", nil)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	//re := regexp.MustCompile(`\.(mp4|jpg)(\?[^?]*|:[^:]*|$)$`)
+	//extMatches := re.FindStringSubmatch(u)
+	//if len(extMatches) > 1 {
+	//	ext := "." + extMatches[1]
+	//	fileName += ext
+	//}
+
+	// 构造JSON-RPC请求体
+	requestBody := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "aria2.addUri",
+		"id":      "qwer",
+		"params": []interface{}{
+			"token:" + secret, // 使用RPC密钥
+			[]string{u},
+			map[string]string{
+				"dir":             wpath + "/" + folderPath,
+				"out":             fileName,
+				"allow-overwrite": "true",
+			},
+		},
+	}
+
+	// 序列化JSON请求体
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
+
+	// 发送数据到WebSocket服务
+	err = conn.WriteMessage(websocket.TextMessage, jsonData)
+	if err != nil {
+		return err
+	}
+
+	// 接收响应（可选）
+	_, message, err := conn.ReadMessage()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Received: %s\n", message)
+
+	return nil
 }

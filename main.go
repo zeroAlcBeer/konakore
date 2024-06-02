@@ -50,7 +50,7 @@ func main() {
 
 	router.POST("/like/:id", controllers.Like)
 	router.POST("/unlike/:id", controllers.Unlike)
-	router.GET("/sample/:id", controllers.Sample)
+	//router.GET("/sample/:id", controllers.Sample)
 
 	router.GET("/force", controllers.Force)
 

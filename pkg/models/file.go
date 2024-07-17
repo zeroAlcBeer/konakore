@@ -134,7 +134,7 @@ func DownloadFile(file *KFile, u string) {
 	}
 	dst := path.Join(wpath, idxStr, file.Name)
 
-	err = downloadFile(idxStr, u, file.Name, "p3terx")
+	err = downloadFile(idxStr, u, file.Name)
 	if err != nil {
 		fmt.Printf("Error downloading file: %v\n", err)
 	}
@@ -143,10 +143,15 @@ func DownloadFile(file *KFile, u string) {
 }
 
 // 调用aria2的JSON-RPC接口下载文件（通过WebSocket）
-func downloadFile(folderPath, u, fileName, secret string) error {
+func downloadFile(folderPath, u, fileName string) error {
+	urlStr := os.Getenv("aria2_server")
+	secret := os.Getenv("aria2_secret")
+
 	// 构造WebSocket连接
 	dialer := websocket.Dialer{}
-	conn, _, err := dialer.Dial("ws://192.168.151.62:6800/jsonrpc", nil)
+
+	// example: ws://127.0.0.1:6800/jsonrpc
+	conn, _, err := dialer.Dial(urlStr, nil)
 	if err != nil {
 		return err
 	}

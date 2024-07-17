@@ -75,7 +75,7 @@ func AddRemotePosts() {
 		for _, post := range lostPts {
 			BuildURL(post)
 			log.Infof("AddRemotePosts name built: %s", post.Tags)
-			if post.JpegFileSize != 0 && post.FileSize > (post.JpegFileSize*10) {
+			if post.JpegFileSize != 0 {
 				go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.JpegURL)
 			} else {
 				go DownloadFile(&KFile{Id: post.Id, Tags: post.Tags}, post.FileURL)

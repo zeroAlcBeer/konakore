@@ -71,7 +71,7 @@ func AddRemotePosts() {
 	}
 	log.Infof("AddRemotePosts found lost post: %v", len(lostArr))
 	log.Infof("AddRemotePosts found lost post: %v", strings.Join(lostArr, ","))
-	if len(lostArr) < 10 {
+	if len(lostArr) < 100 {
 		for _, post := range lostPts {
 			BuildURL(post)
 			log.Infof("AddRemotePosts name built: %s", post.Tags)

@@ -135,7 +135,7 @@
                         </a>
                     </p>
                     <p>
-                        MyScore: {{item.my_score?.toFixed(4)}} / UserScore: {{item.score}} / Disp:
+                        MyScore: {{item.my_score?.toFixed(4)}} / Alg: {{ Object.values(item.tf_idf).map(score => parseFloat(score.toFixed(1))).join(', ') }} / Disp:
                         {{item.w}}x{{item.h}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}
                     </p>
                     <p>
@@ -298,7 +298,7 @@
                                         id: item.id,
                                         my_score: item.my_score,
                                         score: item.score,
-                                        tf_idf: item.tf_idf,
+                                        tf_idf: item.Alg,
                                         rating: item.rating,
                                         size: item.size,
                                         file_size: item.file_size,

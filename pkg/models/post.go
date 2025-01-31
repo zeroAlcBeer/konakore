@@ -27,16 +27,16 @@ type Post struct {
 	Height         int    `gorm:"column:height" json:"height" form:"height"`
 	ParentId       int64  `gorm:"column:parent_id" json:"parent_id" form:"parent_id"`
 
-	Likes          *Like   `gorm:"foreignKey:id" json:"likes"`
-	FileURL        string  `gorm:"-" json:"file_url"`
-	SampleURL      string  `gorm:"-" json:"sample_url"`
-	JpegURL        string  `gorm:"-" json:"jpeg_url"`
-	PreviewURL     string  `gorm:"-" json:"preview_url"`
-	TfIDf          float64 `gorm:"-" json:"tf_idf"`
-	MyScore        float64 `gorm:"-" json:"my_score"`
-	UserScore      float64 `gorm:"-" json:"user_score"`
-	TagCountWeight float64 `gorm:"-" json:"tag_count_weight"`
-	WaifuPillow    bool    `gorm:"-" json:"waifu_pillow"`
+	Likes      *Like  `gorm:"foreignKey:id" json:"likes"`
+	FileURL    string `gorm:"-" json:"file_url"`
+	SampleURL  string `gorm:"-" json:"sample_url"`
+	JpegURL    string `gorm:"-" json:"jpeg_url"`
+	PreviewURL string `gorm:"-" json:"preview_url"`
+	//
+	MyScore     float64 `gorm:"-" json:"my_score"`
+	WaifuPillow bool    `gorm:"-" json:"waifu_pillow"`
+
+	Alg map[string]float64 `gorm:"-" json:"Alg"`
 }
 
 func (p *Post) Save() (err error) {

@@ -18,10 +18,11 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var posts []models.Post
 	page := paginate.New().With(models.GetPostsStmt(query)).Request(r).Response(&posts)
 
-	avg := models.AvgMap(posts)
-	//likes := models.Likes()
+	weight := models.NewTagWeightSystem()
+	weight.Learn(models.GetLikes())
+
 	for index := range posts {
-		models.Mark(&posts[index], avg)
+		weight.ScorePost(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 
@@ -40,9 +41,10 @@ func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var posts []models.Post
 	page := paginate.New().With(models.GetLikesStmt(query)).Request(r).Response(&posts)
 
-	avg := models.AvgMap(posts)
+	weight := models.NewTagWeightSystem()
+	weight.Learn(models.GetLikes())
 	for index := range posts {
-		models.Mark(&posts[index], avg)
+		weight.ScorePost(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 
@@ -78,7 +80,6 @@ func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		target = post.FileURL
 	}
 	models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
-	models.UpdateTfIdf()
 	cJson(w, "OK", nil)
 	return
 }
@@ -108,7 +109,6 @@ func Unlike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	models.UpdateTfIdf()
 	cJson(w, "OK", nil)
 	return
 }

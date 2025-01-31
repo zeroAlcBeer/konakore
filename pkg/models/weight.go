@@ -2,6 +2,7 @@ package models
 
 import (
 	"math"
+	"sort"
 	"strings"
 )
 
@@ -66,28 +67,35 @@ func (tws *TagWeightSystem) ScorePost(p *Post) {
 		return
 	}
 
-	var score float64
-	var tagMatches int
+	var tagScores []float64
+	var totalScore float64
 
 	for _, tag := range tags {
 		if weight, exists := tws.weights[tag]; exists {
-			score += weight
-			tagMatches++
+			// weight := tws.weights[tag]
 
-			if coTags, exists := tws.cooccurrence[tag]; exists {
-				for otherTag, coCount := range coTags {
-					if _, liked := tws.likedTags[otherTag]; liked {
-						score += float64(coCount) * 0.1 / float64(len(tags))
-					}
-				}
-			}
+			// TF-IDF计算
+			// localFreq := 1.0 / float64(len(tags))
+			globalFreq := float64(tws.likedTags[tag]) / float64(len(tws.likedTags))
+			tfidf := weight * math.Log(1/globalFreq)
+
+			tagScores = append(tagScores, tfidf)
+			totalScore += tfidf
 		}
 	}
+	tagComplexityPenalty := math.Pow(0.8, float64(len(tags)-1))
 
-	matchRatio := float64(tagMatches) / float64(len(tags))
-	qualityFactor := 0.3 + 0.7*math.Log1p(matchRatio)
+	averageScore := 0.0
+	sort.Sort(sort.Reverse(sort.Float64Slice(tagScores)))
 
-	normalizedScore := math.Log1p(float64(p.Score))
+	for i, score := range tagScores {
+		weight := math.Pow(0.7, float64(i))
+		averageScore += score * weight
+	}
 
-	p.MyScore = score*qualityFactor + normalizedScore*0.1
+	p.MyScore = averageScore*tagComplexityPenalty +
+		math.Log1p(float64(p.Score))*0.1
+
+	p.UserScore = float64(p.Score)
+	p.WaifuPillow = p.Width > p.Height*2
 }

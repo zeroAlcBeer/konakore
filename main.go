@@ -35,7 +35,6 @@ func main() {
 	models.CheckPath()
 	models.AddLocalPosts()
 	models.AddRemotePosts()
-	models.UpdateTfIdf()
 
 	router := httprouter.New()
 

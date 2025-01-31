@@ -2,11 +2,8 @@ package models
 
 import (
 	"fmt"
-	"math"
 	"net/url"
-	"strings"
 
-	log "github.com/kataras/golog"
 	"gorm.io/gorm"
 )
 
@@ -60,100 +57,6 @@ func GetPostsStmt(query string) *gorm.DB {
 		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
 	}
 	return stmt
-}
-
-func Mark(p *Post, avgMap map[string]float64) {
-	tags := strings.Split(p.Tags, " ")
-
-	// Calculate the TF-IDF value for each tag and track the maximum TF-IDF value
-	for _, tag := range tags {
-		if t, ok := tfIdf[tag]; ok {
-			p.TfIDf += t
-		}
-	}
-	p.TfIDf = p.TfIDf / float64(len(tags))
-
-	// Calculate the normalized user score
-	scoreDiff := float64(p.Score) - avgMap[p.Rating]
-
-	p.UserScore = (1.0 + (scoreDiff / avgMap[p.Rating])) / 2.0
-	p.TagCountWeight = math.Log(float64(len(tags) + 1))
-	//p.MyScore = p.TfIDf * p.UserScore
-	p.MyScore = p.TfIDf + math.Log(float64(p.Score+1)/avgMap[p.Rating])/float64(len(tags))
-
-	p.WaifuPillow = p.Width > p.Height*2
-}
-
-func AvgMap(ps []Post) map[string]float64 {
-	avgMap := make(map[string]float64)
-	sumMap := make(map[string]float64)
-	lenMap := make(map[string]int)
-	for _, post := range ps {
-		if _, ok := sumMap[post.Rating]; !ok {
-			sumMap[post.Rating] = float64(post.Score)
-		} else {
-			sumMap[post.Rating] += float64(post.Score)
-		}
-
-		if _, ok := lenMap[post.Rating]; !ok {
-			lenMap[post.Rating] = 1
-		} else {
-			lenMap[post.Rating] += 1
-		}
-	}
-
-	for ranting, sum := range sumMap {
-		if l, ok := lenMap[ranting]; ok {
-			avgMap[ranting] = float64(sum) / float64(l)
-		}
-	}
-	log.Infof("created avgMap: %v", avgMap)
-
-	return avgMap
-}
-
-var tfIdf map[string]float64
-
-func UpdateTfIdf() {
-	lastId := int64(30 * 10000)
-	post := &Post{}
-	err := post.Last()
-	if err != nil {
-		log.Warnf("get lastid err: %s", err)
-	} else {
-		lastId = post.Id
-	}
-
-	log.Infof("post last id: %d", lastId)
-
-	pts := GetLikeTags()
-	tf1 := make(map[string]int)
-	tf2 := make(map[string]int)
-
-	for _, pt := range pts {
-		tags := strings.Split(pt, " ")
-		for _, tag := range tags {
-			tf1[tag] += 1
-			tf2[tag] += len(tags)
-		}
-	}
-
-	tfIdf = make(map[string]float64)
-	//idfMap := make(map[string]float64)
-
-	countMap := GetTagCount()
-	for tag := range tf1 {
-		if _, ok := countMap[tag]; !ok {
-			countMap[tag] = 1
-		}
-		// 词频 = tag 在图片出现的次数 / 图片的 tag 总数
-		tf := float64(tf1[tag]) / float64(tf2[tag])
-		// 逆文档频率 = log( 图片总数 / 包含此 tag 的图片数 + 1）
-		idf := math.Log(float64(lastId) / (float64(countMap[tag] + 1)))
-		tfIdf[tag] = tf * idf
-		//idfMap[tag] = idf
-	}
-	log.Infof("available tags: %d", len(tfIdf))
 }
 
 func BuildURL(p *Post) {

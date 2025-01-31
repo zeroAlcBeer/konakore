@@ -2,6 +2,7 @@ package models
 
 import (
 	"math"
+	"sort"
 	"strings"
 )
 
@@ -112,5 +113,102 @@ func (tws *TagWeightSystem) ScorePost(p *Post) {
 	p.Alg["rarityBonusScore"] = rarityBonusScore
 	p.Alg["cooccurrenceScore"] = cooccurrenceScore
 	p.Alg["tagCountFactor"] = tagCountFactor
+	p.WaifuPillow = p.Width > p.Height*2
+}
+
+func (tws *TagWeightSystem) ScorePostV2(p *Post) {
+	tags := strings.Split(p.Tags, " ")
+	if len(tags) == 0 {
+		return
+	}
+
+	// 新参数定义
+	const (
+		coreTagThreshold   = 0.3  // 核心标签权重阈值
+		decayFactor        = 0.85 // 协同衰减系数
+		maxEffectiveTags   = 8    // 有效标签上限
+		baselineTagPenalty = 0.92 // 基础惩罚系数
+	)
+
+	// 阶段1：计算标签协同效应
+	processedTags := make(map[string]struct{})
+	uniqueTagScores := make([]float64, 0, len(tags))
+	tagSynergy := 1.0 // 协同效应乘数
+
+	for _, tag := range tags {
+		if _, exists := processedTags[tag]; exists {
+			continue
+		}
+		processedTags[tag] = struct{}{}
+
+		if weight, exists := tws.weights[tag]; exists {
+			// 计算标签协同衰减
+			if coTags, ok := tws.cooccurrence[tag]; ok {
+				synergyCount := 0
+				for relatedTag := range coTags {
+					if _, exists := processedTags[relatedTag]; exists {
+						synergyCount++
+					}
+				}
+				// 每有一个协同标签，衰减系数生效
+				currentDecay := math.Pow(decayFactor, float64(synergyCount))
+				tagSynergy *= currentDecay
+			}
+
+			// 增强核心标签权重
+			adjustedWeight := weight
+			if weight > coreTagThreshold {
+				adjustedWeight += 0.5 * (weight - coreTagThreshold)
+			}
+
+			globalFreq := math.Max(float64(tws.likedTags[tag])/float64(len(tws.likedTags)), 1e-6)
+			tfidf := adjustedWeight * math.Log(1/globalFreq)
+
+			if tfidf > 0.1 {
+				uniqueTagScores = append(uniqueTagScores, tfidf)
+			}
+		}
+	}
+
+	// 阶段2：动态标签数量处理
+	sort.Sort(sort.Reverse(sort.Float64Slice(uniqueTagScores)))
+
+	// 计算有效标签数量（考虑协同效应）
+	effectiveTags := math.Min(float64(len(uniqueTagScores)), maxEffectiveTags)
+	tagCountFactor := baselineTagPenalty * math.Pow(0.96, effectiveTags)
+
+	// 阶段3：动态衰减加权
+	sumWeights := 0.0
+	weightedSum := 0.0
+	remainingImpact := 1.0 // 剩余影响力
+
+	for i, score := range uniqueTagScores {
+		// 动态衰减系数：前25%标签保持全权重，之后指数衰减
+		decay := 1.0
+		if float64(i) > 0.25*effectiveTags {
+			decay = math.Pow(0.8, float64(i)-0.25*effectiveTags)
+		}
+
+		currentWeight := remainingImpact * decay
+		weightedSum += score * currentWeight
+		sumWeights += currentWeight
+		remainingImpact *= 0.92 // 每个标签减少8%剩余影响力
+	}
+
+	// 阶段4：最终得分合成
+	normalizedScore := weightedSum / (sumWeights + 1e-6)
+	rarityScore := math.Sqrt(sumWeights) * 0.7 // 使用平方根压缩稀有性分数
+
+	p.MyScore = (normalizedScore * tagCountFactor * tagSynergy) +
+		rarityScore +
+		math.Log1p(float64(p.Score))*0.1
+
+	// 调试信息
+	p.Alg = make(map[string]float64)
+	p.Alg["normalizedScore"] = normalizedScore
+	p.Alg["rarityScore"] = rarityScore
+	p.Alg["tagSynergy"] = tagSynergy
+	p.Alg["tagCountFactor"] = tagCountFactor
+
 	p.WaifuPillow = p.Width > p.Height*2
 }

@@ -67,35 +67,51 @@ func (tws *TagWeightSystem) ScorePost(p *Post) {
 		return
 	}
 
-	var tagScores []float64
-	var totalScore float64
+	tagScores := make([]float64, 0, len(tags))
+	totalScore := 0.0
+	validTags := 0
 
+	// 计算基础分数时增加最低频率限制
 	for _, tag := range tags {
 		if weight, exists := tws.weights[tag]; exists {
-			// weight := tws.weights[tag]
-
-			// TF-IDF计算
-			// localFreq := 1.0 / float64(len(tags))
-			globalFreq := float64(tws.likedTags[tag]) / float64(len(tws.likedTags))
+			globalFreq := float64(tws.likedTags[tag])/float64(len(tws.likedTags)) + 1e-6 // 防止除零
 			tfidf := weight * math.Log(1/globalFreq)
 
-			tagScores = append(tagScores, tfidf)
-			totalScore += tfidf
+			// 过滤掉过低权重的标签
+			if tfidf > 0.1 {
+				tagScores = append(tagScores, tfidf)
+				totalScore += tfidf
+				validTags++
+			}
 		}
 	}
-	tagComplexityPenalty := math.Pow(0.8, float64(len(tags)-1))
 
-	averageScore := 0.0
+	// 根据分数排序（降序）
 	sort.Sort(sort.Reverse(sort.Float64Slice(tagScores)))
 
+	// 计算归一化加权平均
+	sumWeight := 0.0
+	weightedSum := 0.0
 	for i, score := range tagScores {
 		weight := math.Pow(0.7, float64(i))
-		averageScore += score * weight
+		sumWeight += weight
+		weightedSum += score * weight
 	}
+	averageScore := weightedSum / (sumWeight + 1e-6)
 
-	p.MyScore = averageScore*tagComplexityPenalty +
+	// 标签数量惩罚（对数平衡）
+	tagCount := float64(validTags)
+	countPenalty := 1.0 / math.Log1p(math.E-1+tagCount*0.5) // 柔性惩罚
+
+	// 最终得分组合
+	mainScore := averageScore * countPenalty
+	verificationScore := math.Log1p(totalScore) * 0.2 // 使用totalScore作为验证项
+
+	p.MyScore = mainScore +
+		verificationScore +
 		math.Log1p(float64(p.Score))*0.1
 
+	// 保留原始用户分数
 	p.UserScore = float64(p.Score)
 	p.WaifuPillow = p.Width > p.Height*2
 }

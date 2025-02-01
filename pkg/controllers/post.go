@@ -22,7 +22,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	weight.Learn(models.GetLikes())
 
 	for index := range posts {
-		weight.ScorePostV2(&posts[index])
+		weight.ScorePost(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 
@@ -44,7 +44,7 @@ func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	weight := models.NewTagWeightSystem()
 	weight.Learn(models.GetLikes())
 	for index := range posts {
-		weight.ScorePostV2(&posts[index])
+		weight.ScorePost(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 

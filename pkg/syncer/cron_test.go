@@ -1,20 +1,24 @@
-package models
+package syncer
 
 import (
 	"encoding/json"
+	"konakore/pkg/models"
 	"testing"
 )
 
-func TestTagWeightSystem(t *testing.T) {
-	_, err := OpenDb("root:please_change@tcp(192.168.0.110:3307)/konakore?charset=utf8mb4&parseTime=True&loc=Local", "")
+func TestUpdateTags(t *testing.T) {
+	_, err := models.OpenDb("root:please_change@tcp(192.168.0.110:3307)/konakore?charset=utf8mb4&parseTime=True&loc=Local", "dev")
 	if err != nil {
 		t.Fatal(err)
 	}
+	InitDB()
 
-	tws := NewTagWeightSystem()
+	UpdateTags()
+
+	tws := models.NewTagWeightSystem()
 
 	// 模拟训练数据
-	likedPosts := GetLikes()
+	likedPosts := models.GetLikes()
 	tws.Learn(likedPosts)
 
 	tests := []struct {
@@ -41,8 +45,8 @@ func TestTagWeightSystem(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		p := &Post{Tags: tt.tags}
-		tws.ScorePost(p)
+		p := &models.Post{Tags: tt.tags}
+		tws.ScorePostV2(p)
 
 		b, _ := json.MarshalIndent(p.Alg, "", " ")
 		t.Log(string(b))

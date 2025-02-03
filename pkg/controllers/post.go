@@ -22,7 +22,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	weight.Learn(models.GetLikes())
 
 	for index := range posts {
-		weight.ScorePost(&posts[index])
+		weight.ScorePostV2(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 
@@ -31,7 +31,6 @@ func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		"page":  page.Page,
 		"size":  page.Size,
 	})
-	return
 }
 
 // GetLikes ...
@@ -44,7 +43,7 @@ func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	weight := models.NewTagWeightSystem()
 	weight.Learn(models.GetLikes())
 	for index := range posts {
-		weight.ScorePost(&posts[index])
+		weight.ScorePostV2(&posts[index])
 		models.BuildURL(&posts[index])
 	}
 
@@ -53,8 +52,6 @@ func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		"page":  page.Page,
 		"size":  page.Size,
 	})
-	return
-
 }
 
 // Like ...
@@ -81,7 +78,6 @@ func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
 	cJson(w, "OK", nil)
-	return
 }
 
 // Unlike ...
@@ -110,7 +106,6 @@ func Unlike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	cJson(w, "OK", nil)
-	return
 }
 
 // Force ...
@@ -123,5 +118,4 @@ func Force(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	syncer.ForceUpdatePosts(p)
 	cJson(w, "OK", nil)
-	return
 }

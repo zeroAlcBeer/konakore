@@ -2,82 +2,77 @@ package models
 
 import (
 	"math"
-	"sort"
 	"strings"
 )
 
-type TagWeightSystem struct {
-	tagWeights          map[string]float64
-	likedTagOccurrences map[string]int
-	globalTagCount      map[string]int64
-	totalLikedPosts     int
-	totalPosts          int64
+// TagInfo stores information about a tag
+type TagInfo struct {
+	Weight float64
+	Type   int
+	Count  int64
 }
 
-type weightedTag struct {
-	tag         string
-	weight      float64
-	rarityScore float64 // Add rarityScore for sorting
+type TagWeightSystem struct {
+	// Store tag weights and their information
+	TagWeights map[string]*TagInfo
+	// Store tag type weights to give different importance to different tag types
+	TypeWeights map[int]float64
 }
 
 func NewTagWeightSystem() *TagWeightSystem {
 	return &TagWeightSystem{
-		tagWeights:          make(map[string]float64),
-		likedTagOccurrences: make(map[string]int),
-		globalTagCount:      make(map[string]int64),
-		totalLikedPosts:     0,
-		totalPosts:          0,
+		TagWeights: make(map[string]*TagInfo),
+		TypeWeights: map[int]float64{
+			0: 0.8, // General tags
+			1: 1.5, // Artist tags
+			3: 1.3, // IP tags
+			4: 1.1, // Character tags
+			5: 0.8, // logo, watermark
+			6: 1.2, // brand
+		},
 	}
 }
 
+// Learn analyzes liked posts to build tag weights
 func (tws *TagWeightSystem) Learn(likedPosts []*Post) {
-	tws.tagWeights = make(map[string]float64)
-	tws.likedTagOccurrences = make(map[string]int)
-	tws.totalLikedPosts = len(likedPosts)
+	// Get global tag counts for normalization
+	globalTagCount := GetTagCount()
+	totalLikedPosts := float64(len(likedPosts))
 
-	tws.globalTagCount = GetTagCount()
-
-	for _, count := range tws.globalTagCount {
-		if count > tws.totalPosts {
-			tws.totalPosts = count
-		}
-	}
-
+	// First pass: count tag occurrences in liked posts
+	likedTagCount := make(map[string]int64)
 	for _, post := range likedPosts {
 		tags := strings.Split(post.Tags, " ")
 		for _, tag := range tags {
-			if tag == "" {
-				continue
-			}
-			tws.likedTagOccurrences[tag]++
+			likedTagCount[tag]++
 		}
 	}
 
-	for tag, likedCount := range tws.likedTagOccurrences {
-		tf := float64(likedCount) / float64(tws.totalLikedPosts)
-
-		globalCount := float64(tws.globalTagCount[tag])
-		if globalCount == 0 {
+	// Calculate weights for each tag
+	for tag, likedCount := range likedTagCount {
+		var globalCount int64
+		item, ok := globalTagCount[tag]
+		if ok {
+			globalCount = item.Count
+		} else {
 			continue
 		}
-		idf := math.Log(float64(tws.totalPosts) / globalCount)
 
-		weight := tf * idf
-		weight = math.Log1p(weight)
+		// Calculate tag weight using TF-IDF inspired formula
+		frequency := float64(likedCount) / totalLikedPosts
+		inverse := math.Log(float64(globalCount) / float64(likedCount))
+		weight := frequency * inverse
 
-		tws.tagWeights[tag] = weight
+		// Store tag information
+		tws.TagWeights[tag] = &TagInfo{
+			Weight: weight,
+			Count:  int64(likedCount),
+			Type:   item.Type,
+		}
 	}
 }
 
-func (tws *TagWeightSystem) calculateRarityScore(tag string) float64 {
-	globalCount := float64(tws.globalTagCount[tag])
-	if globalCount == 0 {
-		return 0
-	}
-	// Calculate rarity score as inverse of frequency
-	return math.Log(float64(tws.totalPosts) / globalCount)
-}
-
+// ScorePost calculates a score for a new post based on learned weights
 func (tws *TagWeightSystem) ScorePost(p *Post) {
 	tags := strings.Split(p.Tags, " ")
 	if len(tags) == 0 {
@@ -85,52 +80,114 @@ func (tws *TagWeightSystem) ScorePost(p *Post) {
 	}
 
 	p.Alg = make(map[string]float64)
-	var weightedTags []weightedTag
-
-	// Calculate weight and rarity for each tag
-	for _, tag := range tags {
-		if tag == "" {
-			continue
-		}
-
-		if weight, exists := tws.tagWeights[tag]; exists {
-			rarityScore := tws.calculateRarityScore(tag)
-			weightedTags = append(weightedTags, weightedTag{
-				tag:         tag,
-				weight:      weight,
-				rarityScore: rarityScore,
-			})
-		}
-	}
-
-	// Sort tags primarily by rarity score, then by weight if rarity scores are equal
-	sort.Slice(weightedTags, func(i, j int) bool {
-		if weightedTags[i].rarityScore != weightedTags[j].rarityScore {
-			return weightedTags[i].rarityScore > weightedTags[j].rarityScore
-		}
-		return weightedTags[i].weight > weightedTags[j].weight
-	})
-
-	// Take top 10 tags
-	maxTags := 10
-	if len(weightedTags) < maxTags {
-		maxTags = len(weightedTags)
-	}
-
-	// Calculate final score using selected tags
 	totalScore := 0.0
-	for i := 0; i < maxTags; i++ {
-		tag := weightedTags[i].tag
-		// Combine weight with rarity for final tag contribution
-		// adjustedWeight := weightedTags[i].weight * weightedTags[i].rarityScore
-		p.Alg[tag] = weightedTags[i].rarityScore
-		totalScore += weightedTags[i].rarityScore
+	totalWeight := 0.0
+
+	// Calculate weighted score for each tag
+	for _, tag := range tags {
+		if tagInfo, exists := tws.TagWeights[tag]; exists {
+			// Apply type weight if available
+			typeWeight := tws.TypeWeights[tagInfo.Type]
+
+			// Calculate tag contribution
+			tagScore := tagInfo.Weight * typeWeight
+			totalScore += tagScore
+			totalWeight += typeWeight
+
+			// Store important factors in Alg map
+			p.Alg[tag] = tagScore
+		}
 	}
 
-	p.MyScore = totalScore
+	// Normalize score by total weight to prevent bias from too many tags
+	if totalWeight > 0 {
+		p.MyScore = totalScore / math.Log(totalWeight+1)
+	}
+
+	// Additional features
 	p.WaifuPillow = p.Width > p.Height*2
 }
 
-func (tws *TagWeightSystem) GetTagWeight(tag string) float64 {
-	return tws.tagWeights[tag]
+func (tws *TagWeightSystem) ScorePostV2(p *Post) {
+	tags := strings.Split(p.Tags, " ")
+	if len(tags) == 0 {
+		return
+	}
+
+	p.Alg = make(map[string]float64)
+	typeScores := make(map[int]float64)
+	typeCounts := make(map[int]int)
+
+	// 对每种类型分别追踪最高分
+	typeMaxScores := make(map[int]float64)
+
+	// 首先计算每个标签的分数
+	for _, tag := range tags {
+		if tagInfo, exists := tws.TagWeights[tag]; exists {
+			tagType := tagInfo.Type
+			typeWeight := tws.TypeWeights[tagType]
+
+			tagScore := tagInfo.Weight * typeWeight
+
+			// 记录每种类型的最高分
+			if tagScore > typeMaxScores[tagType] {
+				typeMaxScores[tagType] = tagScore
+			}
+
+			// 仍然累计总分（用于Alg map）
+			typeScores[tagType] += tagScore
+			typeCounts[tagType]++
+
+			p.Alg[tag] = tagScore
+		}
+	}
+
+	// 计算最终分数
+	totalScore := 0.0
+	for tagType, maxScore := range typeMaxScores {
+		// 使用最高分作为基础
+		baseScore := maxScore
+
+		// 如果有多个标签，额外的标签只贡献较小的增益
+		if typeCounts[tagType] > 1 {
+			additionalScore := (typeScores[tagType] - maxScore) /
+				math.Log(float64(typeCounts[tagType])+1)
+			baseScore += additionalScore * 0.3 // 额外标签的影响度降低
+		}
+
+		totalScore += baseScore
+	}
+
+	// 最终归一化
+	numTypes := float64(len(typeMaxScores))
+	if numTypes > 0 {
+		p.MyScore = totalScore / math.Log(numTypes+1)
+	}
+
+	p.WaifuPillow = p.Width > p.Height*2
+}
+
+// Helper function to normalize scores to 0-1 range
+func (tws *TagWeightSystem) NormalizeScores(posts []*Post) {
+	var maxScore, minScore float64
+	maxScore = math.Inf(-1)
+	minScore = math.Inf(1)
+
+	// Find max and min scores
+	for _, p := range posts {
+		if p.MyScore > maxScore {
+			maxScore = p.MyScore
+		}
+		if p.MyScore < minScore {
+			minScore = p.MyScore
+		}
+	}
+
+	// Normalize scores
+	scoreRange := maxScore - minScore
+	if scoreRange > 0 {
+		for _, p := range posts {
+			p.MyScore = (p.MyScore - minScore) / scoreRange
+		}
+	}
 }

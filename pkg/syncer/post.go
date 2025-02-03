@@ -39,6 +39,7 @@ type Tag struct {
 	ID    int64  `gorm:"column:id" json:"id" form:"id"`
 	Name  string `gorm:"column:name" json:"name" form:"name"`
 	Count int64  `gorm:"column:count" json:"count" form:"count"`
+	Type  int    `gorm:"column:type" json:"type" form:"type"`
 }
 
 var (

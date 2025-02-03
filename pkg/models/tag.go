@@ -9,8 +9,22 @@ type Tag struct {
 	Type  int    `gorm:"column:type" json:"type" form:"type"`
 }
 
-func GetTagCount() map[string]*Tag {
-	itemMap := make(map[string]*Tag)
+func GetTagCount() map[string]int64 {
+	tagCountMap := make(map[string]int64)
+	var tags []*Tag
+	err := db.Model(&[]Tag{}).Find(&tags).Error
+	if err != nil {
+		log.Error(err)
+		return tagCountMap
+	}
+	for _, tag := range tags {
+		tagCountMap[tag.Name] = tag.Count
+	}
+	return tagCountMap
+}
+
+func GetTagType() map[string]int {
+	itemMap := make(map[string]int)
 	var tags []*Tag
 	err := db.Model(&[]Tag{}).Find(&tags).Error
 	if err != nil {
@@ -18,7 +32,7 @@ func GetTagCount() map[string]*Tag {
 		return itemMap
 	}
 	for _, tag := range tags {
-		itemMap[tag.Name] = tag
+		itemMap[tag.Name] = tag.Type
 	}
 	return itemMap
 }

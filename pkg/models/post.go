@@ -59,6 +59,12 @@ func GetPostsStmt(query string) *gorm.DB {
 	return stmt
 }
 
+func GetPostsInRange(start, end int64) []*Post {
+	var posts []*Post
+	db.Where("id >= ? AND id < ?", start, end).Find(&posts)
+	return posts
+}
+
 func BuildURL(p *Post) {
 	prefix := "https://konachan.net"
 

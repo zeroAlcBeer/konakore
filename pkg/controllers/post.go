@@ -7,8 +7,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/morkid/paginate"
 
-	"konakore/pkg/models"
-	"konakore/pkg/syncer"
+	"github.com/CheerChen/konakore/pkg/models"
+	"github.com/CheerChen/konakore/pkg/syncer"
 )
 
 // GetPosts ...

@@ -1,8 +1,9 @@
 package syncer
 
 import (
-	"konakore/pkg/models"
 	"testing"
+
+	"github.com/CheerChen/konakore/pkg/models"
 )
 
 func TestUpdateTags(t *testing.T) {

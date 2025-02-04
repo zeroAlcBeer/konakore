@@ -3,8 +3,8 @@ package syncer
 import (
 	"fmt"
 
-	myclient "konakore/pkg/client"
-	"konakore/pkg/models"
+	myclient "github.com/CheerChen/konakore/pkg/client"
+	"github.com/CheerChen/konakore/pkg/models"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

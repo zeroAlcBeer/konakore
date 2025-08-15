@@ -130,14 +130,20 @@
                         </a>
                         -
                         <a :href="'?query=' + tag + ''" v-for="(tag, index) in item.tags.split(' ')">
-                            <span class="badge badge-info">
-                                {{tag}}
+                            <span 
+                                class="badge" 
+                                :class="{
+                                    'badge-primary': item.tf_idf && item.tf_idf[tag] > 0.8,
+                                    'badge-info': item.tf_idf && item.tf_idf[tag] > 0.2 && item.tf_idf[tag] <= 0.8,
+                                    'badge-light': !item.tf_idf || item.tf_idf[tag] <= 0.2
+                                }"
+                            >
+                                {{tag}} {{item.tf_idf && item.tf_idf[tag] ? `(${(item.tf_idf[tag]).toFixed(3)})` : ''}}
                             </span>
                         </a>
                     </p>
                     <p>
                         MyScore: {{item.my_score?.toFixed(4)}}
-                        / Alg: {{ Object.values(item.tf_idf).map(score => parseFloat(score.toFixed(3))).join(', ') }}
                         / Disp: {{item.w}}x{{item.h}} / Size: {{item.fmt_size}} / Rate: {{item.rating}}
                     </p>
                     <p>

@@ -21,3 +21,5 @@ docker-compose-macos.yaml
 
 # Ignore everything in this directory
 bin/
+
+.DS_Store

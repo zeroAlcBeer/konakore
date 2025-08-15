@@ -5,120 +5,127 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/CheerChen/konakore/pkg/models"
+	"github.com/CheerChen/konakore/pkg/services"
+	"github.com/CheerChen/konakore/pkg/syncer"
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/morkid/paginate"
-
-	"github.com/CheerChen/konakore/pkg/models"
-	"github.com/CheerChen/konakore/pkg/ranker"
-	"github.com/CheerChen/konakore/pkg/ranker/tfidf_hybrid"
-	"github.com/CheerChen/konakore/pkg/syncer"
 )
 
-var (
-	// Global ranker instance, initialized once.
-	defaultRanker ranker.Ranker
-)
+// GetPosts returns a handler that serves ranked posts.
+func GetPosts(rs *services.RankerService) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		query := r.URL.Query().Get("query")
+		var posts []*models.Post
+		page := paginate.New().With(models.GetPostsStmt(query)).Request(r).Response(&posts)
 
-// init initializes the default ranker for the application.
-// It learns from all liked posts at startup.
-func init() {
-	defaultRanker = tfidf_hybrid.NewTfidfHybridRanker()
-	defaultRanker.Learn(models.GetLikes())
+		// Get the current ranker, then score, sort, and build URLs
+		ranker := rs.GetRanker()
+		ranker.ScoreAll(posts)
+		sort.Slice(posts, func(i, j int) bool {
+			return posts[i].MyScore > posts[j].MyScore
+		})
+		for i := range posts {
+			models.BuildURL(posts[i])
+		}
+
+		cJson(w, posts, map[string]int64{
+			"total": page.Total,
+			"page":  page.Page,
+			"size":  page.Size,
+		})
+	}
 }
 
-// rankAndRespond handles the common logic of scoring, sorting, building URLs, and responding with JSON.
-func rankAndRespond(w http.ResponseWriter, page *paginate.Page, posts []*models.Post) {
-	// Score all posts using the default ranker.
-	defaultRanker.ScoreAll(posts)
+// GetLikes returns a handler that serves ranked liked posts.
+func GetLikes(rs *services.RankerService) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		query := r.URL.Query().Get("query")
+		var posts []*models.Post
+		page := paginate.New().With(models.GetLikesStmt(query)).Request(r).Response(&posts)
 
-	// Sort posts by their new score in descending order.
-	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].MyScore > posts[j].MyScore
-	})
+		// Get the current ranker, then score, sort, and build URLs
+		ranker := rs.GetRanker()
+		ranker.ScoreAll(posts)
+		sort.Slice(posts, func(i, j int) bool {
+			return posts[i].MyScore > posts[j].MyScore
+		})
+		for i := range posts {
+			models.BuildURL(posts[i])
+		}
 
-	// Build URLs for each post.
-	for i := range posts {
-		models.BuildURL(posts[i])
+		cJson(w, posts, map[string]int64{
+			"total": page.Total,
+			"page":  page.Page,
+			"size":  page.Size,
+		})
 	}
-
-	// Respond with JSON.
-	cJson(w, posts, map[string]int64{
-		"total": page.Total,
-		"page":  page.Page,
-		"size":  page.Size,
-	})
 }
 
-// GetPosts fetches, ranks, and serves posts.
-func GetPosts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	query := r.URL.Query().Get("query")
-	var posts []*models.Post
-	page := paginate.New().With(models.GetPostsStmt(query)).Request(r).Response(&posts)
+// Like returns a handler for liking a post and triggers a ranker retrain.
+func Like(rs *services.RankerService) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotAcceptable)
+			return
+		}
+		post := &models.Post{}
+		err = post.First(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		go post.Like(id)
 
-	rankAndRespond(w, &page, posts)
+		// Trigger a retrain in the background
+		go rs.Retrain()
+
+		models.BuildURL(post)
+		var target string
+		if post.JpegFileSize != 0 {
+			target = post.JpegURL
+		} else {
+			target = post.FileURL
+		}
+		models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
+		cJson(w, "OK", nil)
+	}
 }
 
-// GetLikes fetches, ranks, and serves liked posts.
-func GetLikes(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	query := r.URL.Query().Get("query")
-	var posts []*models.Post
-	page := paginate.New().With(models.GetLikesStmt(query)).Request(r).Response(&posts)
+// Unlike returns a handler for unliking a post and triggers a ranker retrain.
+func Unlike(rs *services.RankerService) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
 
-	rankAndRespond(w, &page, posts)
-}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotAcceptable)
+			return
+		}
+		post := &models.Post{}
+		err = post.First(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		err = post.Unlike(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		err = models.DeleteFile(id)
 
-// Like handles liking a post.
-func Like(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotAcceptable)
-		return
-	}
-	post := &models.Post{}
-	err = post.First(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	go post.Like(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
 
-	models.BuildURL(post)
-	var target string
-	if post.JpegFileSize != 0 {
-		target = post.JpegURL
-	} else {
-		target = post.FileURL
-	}
-	models.DownloadFile(&models.KFile{Id: post.Id, Tags: post.Tags}, target)
-	cJson(w, "OK", nil)
-}
+		// Trigger a retrain in the background
+		go rs.Retrain()
 
-// Unlike handles unliking a post.
-func Unlike(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotAcceptable)
-		return
+		cJson(w, "OK", nil)
 	}
-	post := &models.Post{}
-	err = post.First(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	err = post.Unlike(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
-	err = models.DeleteFile(id)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		return
-	}
-	cJson(w, "OK", nil)
 }
 
 // Force triggers a force update of posts.

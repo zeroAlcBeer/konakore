@@ -11,6 +11,7 @@ import (
 
 	"github.com/CheerChen/konakore/pkg/controllers"
 	"github.com/CheerChen/konakore/pkg/models"
+	"github.com/CheerChen/konakore/pkg/services"
 	"github.com/CheerChen/konakore/pkg/syncer"
 )
 
@@ -36,6 +37,9 @@ func main() {
 	models.AddLocalPosts()
 	models.AddRemotePosts()
 
+	// Init the ranker service, which trains the first model.
+	rankerService := services.NewRankerService()
+
 	router := httprouter.New()
 
 	// assets
@@ -43,13 +47,12 @@ func main() {
 	router.GET("/favicon.ico", serveFile("/assets/favicon.ico"))
 	router.GET("/likes", serveFile("/assets/likes.html"))
 
-	// post
-	router.GET("/api/posts", controllers.GetPosts)
-	router.GET("/api/likes", controllers.GetLikes)
+	// post endpoints with ranker service injected
+	router.GET("/api/posts", controllers.GetPosts(rankerService))
+	router.GET("/api/likes", controllers.GetLikes(rankerService))
 
-	router.POST("/like/:id", controllers.Like)
-	router.POST("/unlike/:id", controllers.Unlike)
-	//router.GET("/sample/:id", controllers.Sample)
+	router.POST("/like/:id", controllers.Like(rankerService))
+	router.POST("/unlike/:id", controllers.Unlike(rankerService))
 
 	router.GET("/force", controllers.Force)
 

@@ -107,11 +107,15 @@ func (r *TfidfHybridRanker) ScoreAll(posts []*models.Post) {
 		// Profile Score (TF-IDF)
 		var profileScore float64
 		tags := strings.Split(p.Tags, " ")
+		if p.Alg == nil {
+			p.Alg = make(map[string]float64)
+		}
 		if len(tags) > 0 {
 			var weight float64
 			for _, tag := range tags {
 				if (r.tfIdf[tag]) > 0 {
 					weight += r.tfIdf[tag]
+					p.Alg[tag] = r.tfIdf[tag]
 				}
 			}
 			profileScore = weight / float64(len(tags))

@@ -54,7 +54,7 @@ func (p *Post) First(id int64) (err error) {
 func GetPostsStmt(query string) *gorm.DB {
 	stmt := db.Model(&[]Post{}).Preload("Likes")
 	if query != "" {
-		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
+		stmt = stmt.Where("tags LIKE ?", "%"+query+"%")
 	}
 	return stmt
 }

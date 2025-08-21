@@ -33,7 +33,7 @@ func LikeAll(in []int64) (err error) {
 func GetLikesStmt(query string) *gorm.DB {
 	stmt := db.Model(&[]Post{}).Preload("Likes").Where("id in (select id from likes)")
 	if query != "" {
-		stmt = stmt.Where("MATCH (`tags`) AGAINST (?)", query)
+		stmt = stmt.Where("tags LIKE ?", "%"+query+"%")
 	}
 	return stmt
 }

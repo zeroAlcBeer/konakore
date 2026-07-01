@@ -14,7 +14,7 @@ services:
       - /opt/konakore/db:/var/lib/mysql
 
   server:
-    image: cheerchen37/konakore-web:latest
+    image: zeroalcbeer/konakore-web:latest
     container_name: konakore-web
     restart: unless-stopped
     depends_on:

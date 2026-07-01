@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/CheerChen/konakore/pkg/models"
-	"github.com/CheerChen/konakore/pkg/services"
-	"github.com/CheerChen/konakore/pkg/syncer"
+	"github.com/zeroAlcBeer/konakore/pkg/models"
+	"github.com/zeroAlcBeer/konakore/pkg/services"
+	"github.com/zeroAlcBeer/konakore/pkg/syncer"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/morkid/paginate"

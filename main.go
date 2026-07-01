@@ -9,10 +9,10 @@ import (
 	log "github.com/kataras/golog"
 	"github.com/rs/cors"
 
-	"github.com/CheerChen/konakore/pkg/controllers"
-	"github.com/CheerChen/konakore/pkg/models"
-	"github.com/CheerChen/konakore/pkg/services"
-	"github.com/CheerChen/konakore/pkg/syncer"
+	"github.com/zeroAlcBeer/konakore/pkg/controllers"
+	"github.com/zeroAlcBeer/konakore/pkg/models"
+	"github.com/zeroAlcBeer/konakore/pkg/services"
+	"github.com/zeroAlcBeer/konakore/pkg/syncer"
 )
 
 func main() {

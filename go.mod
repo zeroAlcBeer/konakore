@@ -1,4 +1,4 @@
-module github.com/CheerChen/konakore
+module github.com/zeroAlcBeer/konakore
 
 go 1.23
 

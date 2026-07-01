@@ -4,7 +4,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/CheerChen/konakore/pkg/models"
+	"github.com/zeroAlcBeer/konakore/pkg/models"
 
 	log "github.com/kataras/golog"
 )

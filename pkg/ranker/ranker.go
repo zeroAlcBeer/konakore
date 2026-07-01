@@ -1,6 +1,6 @@
 package ranker
 
-import "github.com/CheerChen/konakore/pkg/models"
+import "github.com/zeroAlcBeer/konakore/pkg/models"
 
 // Ranker defines the interface for a scoring algorithm.
 type Ranker interface {

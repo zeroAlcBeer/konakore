@@ -8,7 +8,7 @@ RUN go mod tidy && \
     mv ./bin/init /init
 
 FROM alpine:latest
-LABEL org.opencontainers.image.source="https://github.com/CheerChen/konakore"
+LABEL org.opencontainers.image.source="https://github.com/zeroAlcBeer/konakore"
 
 COPY --from=builder /init /
 

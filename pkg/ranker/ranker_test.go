@@ -4,10 +4,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/CheerChen/konakore/pkg/models"
-	"github.com/CheerChen/konakore/pkg/ranker"
-	"github.com/CheerChen/konakore/pkg/ranker/tfidf"
-	"github.com/CheerChen/konakore/pkg/ranker/tfidf_hybrid"
+	"github.com/zeroAlcBeer/konakore/pkg/models"
+	"github.com/zeroAlcBeer/konakore/pkg/ranker"
+	"github.com/zeroAlcBeer/konakore/pkg/ranker/tfidf"
+	"github.com/zeroAlcBeer/konakore/pkg/ranker/tfidf_hybrid"
 
 	log "github.com/kataras/golog"
 )
